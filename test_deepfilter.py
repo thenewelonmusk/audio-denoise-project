@@ -12,7 +12,7 @@ from df.enhance import (
 
 def main():
     input_path = Path("data/noisy/test.wav")
-    output_path = Path(".gitignore/output/clean.wav")
+    output_path = Path("output/clean.wav")
 
     if not input_path.exists():
         raise FileNotFoundError(

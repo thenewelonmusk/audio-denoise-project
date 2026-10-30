@@ -1,0 +1,25 @@
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables / secrets
+.env
+
+# Generated outputs
+output/
+outputs/
+
+# Local audio data - bỏ comment nếu không muốn commit dữ liệu âm thanh
+# data/noisy/
+# data/clean/
+
+# IDE and OS files
+.vscode/
+.DS_Store
+Thumbs.db
