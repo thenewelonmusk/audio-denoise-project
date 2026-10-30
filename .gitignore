@@ -23,3 +23,5 @@ outputs/
 .vscode/
 .DS_Store
 Thumbs.db
+
+*.code-workspace
