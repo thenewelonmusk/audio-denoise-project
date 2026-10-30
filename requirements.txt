@@ -24,3 +24,4 @@ torchaudio==2.8.0+cpu
 typing_extensions==4.16.0
 urllib3==2.8.0
 win32_setctime==1.2.1
+gradio==5.49.1
