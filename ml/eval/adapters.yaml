@@ -1,0 +1,19 @@
+# Which adapter configurations a `runner` sweep evaluates.
+# `module` must expose enhance_file(input_path, output_path, **args) -> dict.
+runs:
+  dfn3:
+    module: adapters.dfnet
+    args: { model: DeepFilterNet3 }
+  dfn3_pf:
+    module: adapters.dfnet
+    args: { model: DeepFilterNet3, post_filter: true }
+  dfn2:
+    module: adapters.dfnet
+    args: { model: DeepFilterNet2 }
+  # Local exported models (see training/export.py):
+  # tiny:
+  #   module: adapters.generic
+  #   args: { model_dir: models/tiny }
+  tiny_smoke:
+    module: adapters.generic
+    args: { model_dir: models/tiny_smoke }

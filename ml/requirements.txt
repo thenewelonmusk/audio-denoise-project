@@ -1,0 +1,16 @@
+# ml/ — eval + inference environment (Python 3.10)
+# torch is installed separately with the matching index URL:
+#   CPU:  pip install torch==2.8.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cpu
+#   CUDA: pip install -r ml\requirements-torch-cuda.txt
+
+numpy==1.26.4
+scipy>=1.10
+soundfile>=0.12
+matplotlib>=3.7
+pyyaml>=6
+tqdm>=4.66
+torch-pesq>=0.1.2
+pystoi>=0.4
+onnxruntime>=1.17
+
+deepfilternet==0.5.6

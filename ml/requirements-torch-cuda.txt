@@ -1,0 +1,11 @@
+# CUDA torch for training. Installed into the same venv, replacing any CPU build:
+#   ml\.venv\Scripts\python.exe -m pip install -r ml\requirements-torch-cuda.txt
+# (the index-url inside this file is honored when passed with -r)
+#
+# This machine: RTX 3050 Laptop 4 GB VRAM -> small batches / short segments /
+# gradient accumulation. Free ~8 GB disk before installing.
+
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch==2.8.0+cu126
+torchaudio==2.8.0+cu126
+tensorboard>=2.15

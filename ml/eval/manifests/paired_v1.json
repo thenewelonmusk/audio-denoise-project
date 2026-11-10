@@ -1,0 +1,40 @@
+{
+  "version": "v1",
+  "sample_rate": 48000,
+  "dataset_hash": "6be6be9c8878a733",
+  "num_pairs": 4,
+  "files": [
+    {
+      "noisy": "noisy_0000.wav",
+      "clean": "clean_0000.wav",
+      "sha256_noisy": "0d14b43d3fe8d2c8b99e852cb6ee7f50a66de532ab29c2b79e44fdb1671c522f",
+      "sha256_clean": "7166609e6b31d67c4f88fc8ddda1a8f24602fd6361aeac03ea9dfd47eb32cbfe",
+      "sample_rate": 48000,
+      "frames": 288000
+    },
+    {
+      "noisy": "noisy_0001.wav",
+      "clean": "clean_0001.wav",
+      "sha256_noisy": "8edb8b1c537c796c931f55bf164b5af30ec13a74ae742f1dff51f8374eb52807",
+      "sha256_clean": "15f96262740205a142aaa60e1d24d7421ec1bc8b0311be0bd487a4462da16f68",
+      "sample_rate": 48000,
+      "frames": 288000
+    },
+    {
+      "noisy": "noisy_0002.wav",
+      "clean": "clean_0002.wav",
+      "sha256_noisy": "653f582eff8371ab772ceeeff3f7f3e6b5bc9ea3e84cbd914520678bc26ce7b0",
+      "sha256_clean": "2c53c73cebc6fb4d6edd8a002aa256018216196adee99389b81a70c48ff30b7e",
+      "sample_rate": 48000,
+      "frames": 288000
+    },
+    {
+      "noisy": "noisy_0003.wav",
+      "clean": "clean_0003.wav",
+      "sha256_noisy": "4f736cc668cb8fe29db4cfdd22e53ddd59212cd3cd808272b8b50fe58444e578",
+      "sha256_clean": "b418463e5357cf11d0ac04724223922b9e7e9cec7ef75045463289a6790a2359",
+      "sample_rate": 48000,
+      "frames": 288000
+    }
+  ]
+}
