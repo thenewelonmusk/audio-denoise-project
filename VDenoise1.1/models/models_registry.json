@@ -1,0 +1,28 @@
+{
+  "dfnet_engine.py": {
+    "engine_id": "dfnet2",
+    "class_name": "DeepFilterNetEngine",
+    "display_name": "DeepFilterNet2 (DFNET2)",
+    "aliases": [
+      "deepfilter",
+      "df2"
+    ],
+    "type": "Mạng Nơ-ron Lọc Âm Thanh Phổ Phức (Full-Band 48kHz)",
+    "sample_rate": "48 kHz (Khuyên dùng)",
+    "status": "Hoạt động (Active / Default)",
+    "description": "Mô hình học sâu lọc sâu 48kHz trên miền tần số phức STFT & ERB. Khử sạch tạp âm đời sống, bảo toàn formant và ngữ điệu giọng nói."
+  },
+  "mock_engine.py": {
+    "engine_id": "mock",
+    "class_name": "MockDenoiseEngine",
+    "display_name": "Mock DSP Engine",
+    "aliases": [
+      "passthrough",
+      "mock_dsp"
+    ],
+    "type": "Xử lý Tín hiệu Số Cổ điển (Butterworth Bandpass)",
+    "sample_rate": "48 kHz / Đa tần số",
+    "status": "Hoạt động (Active / CPU)",
+    "description": "Bộ lọc dải thông Butterworth 100Hz - 7.5kHz chạy trực tiếp trên CPU, siêu nhẹ (< 0.1ms/chunk), dùng kiểm thử đường ống không cần GPU."
+  }
+}
