@@ -1,0 +1,27 @@
+# ==============================================================================
+# ACOUSTIC STUDIO // AI AUDIO DENOISER WORKSTATION
+# Core Requirements & Dependencies
+# ==============================================================================
+
+# Layer 3: Presentation & Web UI
+gradio>=5.0.0
+imageio-ffmpeg>=0.4.9
+pydub>=0.25.1
+
+# Layer 1: Audio Signal Processing & Spectrogram Visualization
+numpy>=1.24.0
+scipy>=1.10.0
+soundfile>=0.12.1
+matplotlib>=3.7.0
+
+# Layer 2: Deep Learning Inference & DeepFilterNet2 Core
+torch>=2.0.0
+torchaudio>=2.0.0
+requests>=2.28.0
+appdirs>=1.4.4
+loguru>=0.6.0
+sympy>=1.11.0
+packaging>=21.0
+
+# Quality Assurance & Test Verification
+pytest>=7.0.0
