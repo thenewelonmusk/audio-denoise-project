@@ -1,0 +1,15 @@
+{
+  "name": "dfn3_ft_vivos_v1",
+  "version": "0.1.0",
+  "arch": "dfnet",
+  "native_sr": 48000,
+  "channels": 1,
+  "config": {
+    "base": "DeepFilterNet3",
+    "loss": "df.loss.Loss (MultiResSpec + LocalSnr)"
+  },
+  "license": "internal",
+  "created": "2026-11-12T15:31:42+00:00",
+  "training_run": "colab finetune: 8 epochs x 3000 pairs, lr=0.0001, data=VIVOS-train + UrbanSound8K, eval si_sdr 17.51->23.37 dB",
+  "notes": "best ckpt by eval SI-SDR: model_7.ckpt.best; eval pairs from VIVOS test speakers"
+}

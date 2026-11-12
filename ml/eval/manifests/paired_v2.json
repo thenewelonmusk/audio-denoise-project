@@ -1,0 +1,168 @@
+{
+  "version": "v1",
+  "sample_rate": 48000,
+  "dataset_hash": "7566155e0c0161ff",
+  "num_pairs": 20,
+  "files": [
+    {
+      "noisy": "noisy_0000.wav",
+      "clean": "clean_0000.wav",
+      "sha256_noisy": "d14d52bef23d54607c07423c1d9def1b0bf1d2f4f9c9c4ddf26a4ee251139dcd",
+      "sha256_clean": "99f8d90d2428ca7f2155800287465df5418037755bc83da3bfadfb7d02bdb6bb",
+      "sample_rate": 48000,
+      "frames": 195000
+    },
+    {
+      "noisy": "noisy_0001.wav",
+      "clean": "clean_0001.wav",
+      "sha256_noisy": "d2b79b3008cacff38c9e88a409a482507d3601a54aef797e53ef44e6c3cc8eb7",
+      "sha256_clean": "d7761afa6c5a5efd35cc2c771371775d2930d09f8ef40ab155de9c2d258cc9a2",
+      "sample_rate": 48000,
+      "frames": 177000
+    },
+    {
+      "noisy": "noisy_0002.wav",
+      "clean": "clean_0002.wav",
+      "sha256_noisy": "f1ddbba16373e7411f668dbdc1911f51e56eaf424a53c67d4f79da85a96fccfd",
+      "sha256_clean": "869f35c04692e05f3da7df0d0f51fde70ae06c92f0b4bceec66dbcc5187cd97e",
+      "sample_rate": 48000,
+      "frames": 201000
+    },
+    {
+      "noisy": "noisy_0003.wav",
+      "clean": "clean_0003.wav",
+      "sha256_noisy": "0b924128687d33ed535624f0b663565d0531152b304b64c7c24bcb22f9466dd8",
+      "sha256_clean": "29fe56c3dd53059a9c5f33f1c2aeb94067c960a802b4d48b72ac902012fa1581",
+      "sample_rate": 48000,
+      "frames": 226500
+    },
+    {
+      "noisy": "noisy_0004.wav",
+      "clean": "clean_0004.wav",
+      "sha256_noisy": "a45522cc7112041a6a4d099febdb0284461e14ae4f49ba8e3748ea09659373e1",
+      "sha256_clean": "7f8dbf66bcee568a4a4e1b7f24893d164b5653443d5a1537a2fef73f8c54b9f9",
+      "sample_rate": 48000,
+      "frames": 219000
+    },
+    {
+      "noisy": "noisy_0005.wav",
+      "clean": "clean_0005.wav",
+      "sha256_noisy": "d57f85c5cdef0ad4a866568eb99e52fa2d6d2de98e9d65f940338f6318349ccf",
+      "sha256_clean": "252eafc0a3c3828ca127c13a155d47abc75c4a3ea6550298016fe2c1b77f096a",
+      "sample_rate": 48000,
+      "frames": 93000
+    },
+    {
+      "noisy": "noisy_0006.wav",
+      "clean": "clean_0006.wav",
+      "sha256_noisy": "4b18eff378b28f579b0394a00b3115654d0c1cf30e39a84c87807befe2ebb310",
+      "sha256_clean": "a592a9cf21183a1b6d4cef5430f0eaa7af629de63254e57338b7390a0548ed7d",
+      "sample_rate": 48000,
+      "frames": 162000
+    },
+    {
+      "noisy": "noisy_0007.wav",
+      "clean": "clean_0007.wav",
+      "sha256_noisy": "e7d1107394c16812f9d24b8bbc46ff84389376006135a2190a2385eecf3c4944",
+      "sha256_clean": "4c37672c9f97beed98d58094a7688ff483e705402f7ece1c49a9a0b14bf2d89f",
+      "sample_rate": 48000,
+      "frames": 250500
+    },
+    {
+      "noisy": "noisy_0008.wav",
+      "clean": "clean_0008.wav",
+      "sha256_noisy": "34b77dbea689adb333b6bf0355634b540a8c87f296453723a51e5b50648e3509",
+      "sha256_clean": "5aa6a0cb22cbe9c71de5518a02cb4a35e0a9344d40c33e6a187de0e5305b759d",
+      "sample_rate": 48000,
+      "frames": 124500
+    },
+    {
+      "noisy": "noisy_0009.wav",
+      "clean": "clean_0009.wav",
+      "sha256_noisy": "10daa251cd20ecc87662e8f5a51d9a72bc4d56ae638d545fcc67a0e697cb7dcd",
+      "sha256_clean": "adedaf58868eb39fe8e1c64feadd34215b9d610da9b661721babac20e1048afe",
+      "sample_rate": 48000,
+      "frames": 141000
+    },
+    {
+      "noisy": "noisy_0010.wav",
+      "clean": "clean_0010.wav",
+      "sha256_noisy": "87d1930fcc6de5fb4780bc9ea4ded300338d543098b736a6aedfc00ae736f0ef",
+      "sha256_clean": "b8e62a9678af690543328764e0565333cb50e4a0d36c02fe3136cdc129d62c2f",
+      "sample_rate": 48000,
+      "frames": 181500
+    },
+    {
+      "noisy": "noisy_0011.wav",
+      "clean": "clean_0011.wav",
+      "sha256_noisy": "4bf9dc4e65af1141b161242ccf37a46ffd021522ca91c8ac2e838d030771ee96",
+      "sha256_clean": "76cdd3629e69c6e42d3c87f940324986515de124eb641034961bd8566b78c7ba",
+      "sample_rate": 48000,
+      "frames": 105000
+    },
+    {
+      "noisy": "noisy_0012.wav",
+      "clean": "clean_0012.wav",
+      "sha256_noisy": "8798b82a4676a64700578b2926718d199afca2f146cf690ad9dd04b89ae247a1",
+      "sha256_clean": "e6d5aeb4e03c45048810f296283e836a93a0378c64eba37609e459d6e62480e5",
+      "sample_rate": 48000,
+      "frames": 219000
+    },
+    {
+      "noisy": "noisy_0013.wav",
+      "clean": "clean_0013.wav",
+      "sha256_noisy": "d25e116bab134ff00ce0a91038aaef93b8b790d7afe488753da389e11b039381",
+      "sha256_clean": "4f0cdabb1e9e5a19b2c350a99413bf2b065461852a794d9ad386db239eedf827",
+      "sample_rate": 48000,
+      "frames": 180000
+    },
+    {
+      "noisy": "noisy_0014.wav",
+      "clean": "clean_0014.wav",
+      "sha256_noisy": "fab2e8b026ca90cdfe44b683239cdcc4080b1f92656101dfb50c542d61187faa",
+      "sha256_clean": "111a902b07e57febdd3dfa21549e9cc09e91cbc13ed233e6158dc792d075713f",
+      "sample_rate": 48000,
+      "frames": 198000
+    },
+    {
+      "noisy": "noisy_0015.wav",
+      "clean": "clean_0015.wav",
+      "sha256_noisy": "2c66f41818b1f19dfd8534656d2228971006ed4d232e52945cc981f7207ae74b",
+      "sha256_clean": "bccab2afa80788bb00392a9d12f3e7ab3094265c2095320341e67254ef9b8ccf",
+      "sample_rate": 48000,
+      "frames": 195000
+    },
+    {
+      "noisy": "noisy_0016.wav",
+      "clean": "clean_0016.wav",
+      "sha256_noisy": "742fa44e7f0ea793cc2a2874ead12bc507e79bf9dec75087bbfbddde1bbc970e",
+      "sha256_clean": "6f5c34a6213c58f2972dedee21f98f08c374f447c5619725fb8eaebaffe80b92",
+      "sample_rate": 48000,
+      "frames": 145500
+    },
+    {
+      "noisy": "noisy_0017.wav",
+      "clean": "clean_0017.wav",
+      "sha256_noisy": "d0dcdb3637747c1f1b78ea75f181149a4673f427033adae9072c2307428cb355",
+      "sha256_clean": "04b26f0f97bc5f15a11b5a81c1cdadb5fd4c5ca097f01a514dec00c4fd688392",
+      "sample_rate": 48000,
+      "frames": 138000
+    },
+    {
+      "noisy": "noisy_0018.wav",
+      "clean": "clean_0018.wav",
+      "sha256_noisy": "98a14548be69116176b34180e192f6b49d68ddf38b24670f8895064271af8cc5",
+      "sha256_clean": "e72feff65e4ed245c38d4b05839c348f814917448ba641daf6ef7ae7be3517d8",
+      "sample_rate": 48000,
+      "frames": 186000
+    },
+    {
+      "noisy": "noisy_0019.wav",
+      "clean": "clean_0019.wav",
+      "sha256_noisy": "ea3044fd35a738635110187e3837a489652c9afe295a520f144feac97a975adc",
+      "sha256_clean": "d48baa0fb6b185d70591395c0c0f3fb80d8f884a427207c13f9e1724d198e324",
+      "sample_rate": 48000,
+      "frames": 165000
+    }
+  ]
+}

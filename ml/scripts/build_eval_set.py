@@ -56,12 +56,14 @@ def main():
             raise SystemExit("Give --clean and --noise dirs, or use --synthetic.")
         clean_dir, noise_dir = Path(a.clean), Path(a.noise)
 
-    cleans = sorted(clean_dir.glob("*.wav"))
-    noises = sorted(noise_dir.glob("*.wav"))
+    cleans = sorted(clean_dir.rglob("*.wav"))
+    noises = sorted(noise_dir.rglob("*.wav"))
     snrs = [0, 5, 10, 15]
+    pick = np.random.default_rng(a.seed)  # deterministic, spread across noise files
     for i in range(a.num):
-        synth_pair(cleans[i % len(cleans)], noises[(i // len(cleans)) % len(noises)],
-                   Path(a.out), i, float(snrs[i % len(snrs)]), a.seed)
+        snr = float(snrs[i % len(snrs)])
+        synth_pair(cleans[i % len(cleans)], noises[int(pick.integers(0, len(noises)))],
+                   Path(a.out), i, snr, a.seed)
     print(f"eval set: {a.num} pairs -> {a.out}")
     print("next: python -m eval.manifest build --dir data/eval/paired --out eval/manifests/paired_v1.json")
 

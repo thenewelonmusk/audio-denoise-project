@@ -176,9 +176,10 @@ python -m training.train --arch my_crn --init-from models/my_crn_v1/weights.pt \
 ```
 
 Change **one** variable per run vs the baseline. Fine-tuning DeepFilterNet
-*itself* doesn't go through this loop — DFN has its own upstream trainer
-(`df/train.py`); a fine-tuned DFN would be delivered via the same `models/`
-format with `arch: "dfnet"` handled by the DFN engine.
+*itself* doesn't go through this loop — use the Colab notebook
+[`finetune_dfn3_colab.ipynb`](finetune_dfn3_colab.ipynb) (pip wheel's own model +
+loss, no Rust build; T4, ~30–60 min) — a fine-tuned DFN is delivered via the
+same `models/` format with `arch: "dfnet"` handled by the DFN engine.
 
 ### Distillation (response-based, two steps)
 

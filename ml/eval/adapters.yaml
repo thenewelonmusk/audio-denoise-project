@@ -14,6 +14,12 @@ runs:
   # tiny:
   #   module: adapters.generic
   #   args: { model_dir: models/tiny }
-  tiny_smoke:
-    module: adapters.generic
-    args: { model_dir: models/tiny_smoke }
+  # tiny_smoke:
+  #   module: adapters.generic
+  #   args: { model_dir: models/tiny_smoke }
+  dfn3_ft_vivos_v1:
+    module: adapters.dfnet
+    args: { model: models/dfn3_ft_vivos_v1 }
+  dfn3_ft_vivos_v1_pf:
+    module: adapters.dfnet
+    args: { model: models/dfn3_ft_vivos_v1, post_filter: true }

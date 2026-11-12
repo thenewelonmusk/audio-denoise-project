@@ -15,6 +15,12 @@ env/
 output/
 outputs/
 
+# ML experiments (venv is covered by .venv/ above)
+ml/data/
+ml/runs/
+ml/models/
+ml/eval/dnsmos/
+
 # Local audio data - bỏ comment nếu không muốn commit dữ liệu âm thanh
 # data/noisy/
 # data/clean/
