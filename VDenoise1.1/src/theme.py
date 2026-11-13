@@ -131,12 +131,14 @@ class AudioWorkstationTheme(Base):
 
 
 DAW_CUSTOM_CSS = """
-/* Anti-AI-Slop DAW Workstation Styling */
+/* Anti-AI-Slop DAW Workstation Styling — Direction 1 Asymmetric Signal Console */
 .gradio-container {
-    max-width: 1240px !important;
+    max-width: 1400px !important;
     margin: 0 auto !important;
+    padding: 18px 24px !important;
     font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif !important;
     background-color: #09090b !important;
+    overflow-x: clip !important;
 }
 
 /* DAW Header Rack */
@@ -144,7 +146,7 @@ DAW_CUSTOM_CSS = """
     background: #121316;
     border: 1px solid #27272a;
     border-radius: 6px;
-    padding: 16px 20px;
+    padding: 14px 18px;
     margin-bottom: 14px;
     display: flex;
     justify-content: space-between;
@@ -153,7 +155,7 @@ DAW_CUSTOM_CSS = """
     gap: 12px;
 }
 .daw-header h1, .daw-header-title h1 {
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 700;
     color: #f4f4f5;
     margin: 0;
@@ -163,11 +165,11 @@ DAW_CUSTOM_CSS = """
 .daw-header p, .daw-header-title p {
     font-size: 13px;
     color: #a1a1aa;
-    margin: 4px 0 0 0;
+    margin: 3px 0 0 0;
 }
 .daw-header-badges {
     display: flex !important;
-    gap: 10px !important;
+    gap: 8px !important;
     align-items: center !important;
     justify-content: flex-end !important;
     flex-wrap: nowrap !important;
@@ -199,6 +201,19 @@ DAW_CUSTOM_CSS = """
     height: 32px !important;
     box-sizing: border-box !important;
     line-height: 1 !important;
+}
+.daw-badge-active-engine {
+    background: #141518 !important;
+    color: #e4e4e7 !important;
+    border-color: #3f3f46 !important;
+}
+.daw-badge-active-engine .daw-live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background: #10b981;
+    margin-right: 7px;
+    display: inline-block;
 }
 .daw-badge-mono {
     border-color: #06b6d4 !important;
@@ -234,7 +249,7 @@ button.daw-engine-btn {
     height: 32px !important;
     box-sizing: border-box !important;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
-    transition: all 0.15s ease-in-out !important;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -245,7 +260,6 @@ button.daw-engine-btn:hover {
     background: #065f46 !important;
     border-color: #10b981 !important;
     color: #a7f3d0 !important;
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.35) !important;
     transform: translateY(-1px) !important;
 }
 button.daw-engine-btn:active {
@@ -257,15 +271,15 @@ button.daw-engine-btn:focus {
     outline-offset: 1px !important;
 }
 
-/* Engine Selector Rack Panel */
+/* Engine Hardware Inventory Drawer (Toggled by "ENGINE: READY") */
 #daw-engine-rack,
 .daw-engine-rack {
     background: #121316 !important;
     background-color: #121316 !important;
     border: 1px solid #059669 !important;
     border-radius: 6px !important;
-    padding: 16px 18px !important;
-    margin-bottom: 16px !important;
+    padding: 14px 16px !important;
+    margin-bottom: 14px !important;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5) !important;
 }
 .daw-engine-rack-header {
@@ -273,7 +287,7 @@ button.daw-engine-btn:focus {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    margin-bottom: 12px !important;
+    margin-bottom: 10px !important;
     padding-bottom: 8px !important;
     border-bottom: 1px solid #27272a !important;
     flex-wrap: nowrap !important;
@@ -287,6 +301,9 @@ button.daw-engine-btn:focus {
     letter-spacing: 0.06em;
     text-transform: uppercase;
     flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 button.daw-close-rack-btn {
     flex: 0 0 auto !important;
@@ -301,7 +318,7 @@ button.daw-close-rack-btn {
     font-size: 12px !important;
     font-weight: 600 !important;
     cursor: pointer !important;
-    transition: all 0.15s ease-in-out !important;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease !important;
 }
 button.daw-close-rack-btn:hover {
     background: #3f3f46 !important;
@@ -314,27 +331,63 @@ button.daw-close-rack-btn:hover {
     background: #18181b !important;
     border-color: #27272a !important;
 }
-.daw-engine-rack label span {
-    color: #d4d4d8 !important;
-}
-.daw-engine-rack select,
-.daw-engine-rack input {
-    background: #141518 !important;
-    color: #f4f4f5 !important;
-    border-color: #27272a !important;
-}
 .daw-engine-meta-card {
     background: #090a0c;
     border: 1px solid #27272a;
     border-radius: 4px;
-    padding: 10px 14px;
+    padding: 9px 11px;
     font-family: 'JetBrains Mono', Consolas, monospace;
-    font-size: 12px;
+    font-size: 11px;
     color: #d4d4d8;
-    line-height: 1.6;
+    line-height: 1.42;
+    margin-top: 6px;
 }
 .daw-engine-meta-card strong {
     color: #22d3ee;
+}
+.daw-engine-meta-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.daw-engine-meta-name {
+    font-weight: 700;
+    color: #22d3ee;
+    font-size: 12px;
+}
+.daw-engine-meta-row {
+    margin-top: 3px;
+}
+.daw-engine-meta-summary {
+    color: #a1a1aa;
+    font-size: 10.5px;
+    line-height: 1.35;
+    word-break: break-word;
+}
+.daw-engine-details {
+    margin-top: 6px;
+    border-top: 1px solid #1f2126;
+    padding-top: 5px;
+}
+.daw-engine-details summary {
+    cursor: pointer;
+    color: #a1a1aa;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    user-select: none;
+}
+.daw-engine-details summary:hover {
+    color: #34d399;
+}
+.daw-engine-desc {
+    margin-top: 5px;
+    color: #a1a1aa;
+    font-size: 10.5px;
+    line-height: 1.45;
 }
 .daw-engine-status-tag {
     display: inline-block;
@@ -355,13 +408,253 @@ button.daw-close-rack-btn:hover {
     color: #38bdf8;
     border: 1px solid #0284c7;
 }
+.daw-engine-inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+}
+.daw-engine-inventory-item {
+    background: #090a0c;
+    border: 1px solid #27272a;
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 11.5px;
+    color: #d4d4d8;
+}
+
+/* ==========================================================================
+   DIRECTION 1: ASYMMETRIC 30/70 SIGNAL CONSOLE WORKSPACE
+   ========================================================================== */
+.daw-console-workspace {
+    align-items: stretch !important;
+    gap: 18px !important;
+}
+@media (min-width: 961px) {
+    .daw-left-rail {
+        align-self: flex-start !important;
+        position: sticky !important;
+        top: 14px !important;
+    }
+}
+@media (max-width: 960px) {
+    .daw-console-workspace {
+        flex-direction: column !important;
+    }
+    .daw-left-rail,
+    .daw-right-stage {
+        width: 100% !important;
+        min-width: 100% !important;
+        position: static !important;
+    }
+}
+
+.daw-left-rail {
+    background: #121316 !important;
+    border: 1px solid #27272a !important;
+    border-radius: 6px !important;
+    padding: 12px !important;
+    min-width: 310px !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.daw-right-stage {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    min-width: 0 !important;
+    align-self: stretch !important;
+}
+
+.daw-stage-panel {
+    background: #121316 !important;
+    border: 1px solid #27272a !important;
+    border-radius: 6px !important;
+    padding: 14px 16px !important;
+    flex: 1 1 auto !important;
+}
+.daw-stage-panel:not(.hidden):not([style*="display: none"]) {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.daw-stage-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #27272a;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.daw-stage-title {
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.daw-stage-title-accent {
+    color: #34d399;
+}
+
+/* Mode Switcher Tabs inside Left Rail */
+.daw-mode-tabs .tab-nav {
+    background: #09090b !important;
+    border: 1px solid #27272a !important;
+    border-radius: 5px !important;
+    padding: 3px !important;
+    margin-bottom: 12px !important;
+    gap: 4px !important;
+    border-bottom: 1px solid #27272a !important;
+}
+.daw-mode-tabs .tab-nav button {
+    flex: 1 1 0 !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 7px 10px !important;
+    border: 1px solid transparent !important;
+    color: #a1a1aa !important;
+    background: transparent !important;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease !important;
+}
+.daw-mode-tabs .tab-nav button[aria-selected="true"] {
+    background: #064e3b !important;
+    color: #34d399 !important;
+    border: 1px solid #059669 !important;
+    border-bottom: 1px solid #059669 !important;
+    font-weight: 700 !important;
+}
+
+/* Quick Sample Preset Chips */
+.daw-rail-section-label {
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #71717a;
+    margin: 8px 0 4px 0;
+}
+.daw-sample-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 5px !important;
+    margin-bottom: 6px !important;
+}
+button.daw-sample-chip-btn {
+    background: #18181b !important;
+    color: #d4d4d8 !important;
+    border: 1px solid #27272a !important;
+    border-radius: 4px !important;
+    font-family: 'JetBrains Mono', Consolas, monospace !important;
+    font-size: 10.5px !important;
+    font-weight: 500 !important;
+    padding: 4px 7px !important;
+    min-height: 27px !important;
+    height: auto !important;
+    width: auto !important;
+    flex: 1 1 auto !important;
+    transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease !important;
+}
+button.daw-sample-chip-btn:hover {
+    border-color: #10b981 !important;
+    color: #34d399 !important;
+    background: #0b1914 !important;
+}
+
+/* Persistent Engine Card inside Left Rail */
+.daw-rail-engine-card {
+    background: #0d0e11 !important;
+    border: 1px solid #27272a !important;
+    border-radius: 6px !important;
+    padding: 10px 12px !important;
+    margin-top: 10px !important;
+}
+.daw-rail-engine-card .block,
+.daw-rail-engine-card .form,
+.daw-rail-engine-card fieldset {
+    background: transparent !important;
+    border-color: #27272a !important;
+    padding: 0 !important;
+}
+.daw-rail-engine-card label span,
+.daw-rail-engine-card [data-testid="block-info"] {
+    color: #e4e4e7 !important;
+    font-family: 'JetBrains Mono', Consolas, monospace !important;
+    font-size: 11px !important;
+    letter-spacing: 0.05em !important;
+}
+.daw-rail-engine-card .wrap {
+    background: #141518 !important;
+    border: 1px solid #27272a !important;
+    border-radius: 4px !important;
+    position: relative !important;
+}
+.daw-rail-engine-card .wrap-inner {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    padding: 2px 34px 2px 10px !important;
+    min-height: 38px !important;
+    box-sizing: border-box !important;
+}
+.daw-rail-engine-card .secondary-wrap {
+    display: flex !important;
+    align-items: center !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+}
+.daw-rail-engine-card select,
+.daw-rail-engine-card input,
+.daw-rail-engine-card input[role="combobox"] {
+    background: transparent !important;
+    color: #f4f4f5 !important;
+    border: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 6px 4px 6px 0 !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+}
+.daw-rail-engine-card .icon-wrap {
+    position: absolute !important;
+    right: 10px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 16px !important;
+    height: 16px !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    pointer-events: none !important;
+    color: #a1a1aa !important;
+    z-index: 2 !important;
+}
 
 /* Telemetry Grid & Hardware Cards */
 .telemetry-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin: 12px 0 16px 0;
+    gap: 10px;
+    margin: 0 0 12px 0;
 }
 @media (max-width: 768px) {
     .telemetry-grid {
@@ -369,32 +662,33 @@ button.daw-close-rack-btn:hover {
     }
 }
 .telemetry-card {
-    background: #141518;
+    background: #090a0c;
     border: 1px solid #27272a;
     border-radius: 4px;
-    padding: 12px 14px;
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
 }
 .telemetry-label {
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 600;
     color: #71717a;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
 }
 .telemetry-value {
     font-family: 'JetBrains Mono', Consolas, monospace;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 700;
     color: #f4f4f5;
+    font-variant-numeric: tabular-nums;
 }
 .telemetry-unit {
-    font-size: 12px;
+    font-size: 11.5px;
     color: #a1a1aa;
     font-weight: 400;
-    margin-left: 2px;
+    margin-left: 3px;
 }
 .status-good {
     color: #10b981 !important;
@@ -408,7 +702,7 @@ button.daw-close-rack-btn:hover {
 
 /* Studio Audio Meters & Fader Bars */
 .audio-meter-bar {
-    height: 6px;
+    height: 5px;
     background: #27272a;
     border-radius: 3px;
     overflow: hidden;
@@ -422,44 +716,190 @@ button.daw-close-rack-btn:hover {
     width: 100%;
 }
 
-/* Component Overrides */
+/* Spectrogram Stack & Layout Toggle */
+.daw-spec-toolbar {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 8px !important;
+    margin-bottom: 4px !important;
+    gap: 12px !important;
+    flex-wrap: nowrap !important;
+}
+.daw-spec-toolbar > :first-child {
+    flex: 1 1 auto !important;
+}
+.daw-spec-layout-toggle {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: fit-content !important;
+}
+.daw-spec-layout-toggle .wrap {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: auto !important;
+}
+.daw-spec-layout-toggle label {
+    white-space: nowrap !important;
+    padding: 5px 11px !important;
+    font-size: 12px !important;
+}
+.daw-spectrogram-stack {
+    gap: 12px !important;
+    margin-top: 4px !important;
+    flex: 1 1 auto !important;
+}
+.daw-spec-stacked {
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+}
+.daw-spec-stacked > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
+}
+.daw-spec-side-by-side {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+}
+.daw-spec-side-by-side > * {
+    width: 100% !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    min-height: 190px !important;
+}
+@media (max-width: 720px) {
+    .daw-spec-side-by-side {
+        grid-template-columns: 1fr !important;
+    }
+}
+.daw-spec-plot {
+    border: 1px solid #27272a !important;
+    border-radius: 4px !important;
+    background: #090a0c !important;
+    overflow: hidden !important;
+}
+
+/* Live Stream Signal Chain Diagram */
+.daw-signal-chain-card {
+    background: #090a0c;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-top: 10px;
+}
+.daw-signal-chain-flow {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+@media (max-width: 768px) {
+    .daw-signal-chain-flow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+.daw-signal-node {
+    background: #141518;
+    border: 1px solid #27272a;
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', Consolas, monospace;
+}
+.daw-signal-node-step {
+    font-size: 10px;
+    color: #34d399;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.daw-signal-node-title {
+    font-size: 12px;
+    color: #f4f4f5;
+    font-weight: 700;
+    margin-top: 3px;
+}
+.daw-signal-node-desc {
+    font-size: 11px;
+    color: #a1a1aa;
+    margin-top: 3px;
+    line-height: 1.4;
+}
+
+/* Component Overrides & Audio Panel Symmetry */
 .gr-audio {
     border-radius: 4px !important;
     border: 1px solid #27272a !important;
-    background-color: #141518 !important;
+    background-color: #090a0c !important;
 }
 .tab-nav button[aria-selected="true"] {
     border-bottom: 2px solid #10b981 !important;
     color: #f4f4f5 !important;
     font-weight: 600 !important;
 }
-
-/* Audio Panels Symmetry & Height Balance */
 .daw-audio-comparison-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     align-items: stretch !important;
-    margin-bottom: 12px !important;
+    gap: 12px !important;
+    margin-bottom: 10px !important;
 }
-.daw-audio-comparison-row > div {
+.daw-audio-comparison-row > * {
+    width: 100% !important;
+    min-width: 0 !important;
     display: flex !important;
     flex-direction: column !important;
+}
+@media (max-width: 760px) {
+    .daw-audio-comparison-row {
+        grid-template-columns: 1fr !important;
+    }
+}
+.daw-compare-before {
+    border-top: 2px solid #52525b !important;
+}
+.daw-compare-after {
+    border-top: 2px solid #10b981 !important;
 }
 .daw-audio-panel {
     display: flex !important;
     flex-direction: column !important;
     flex: 1 1 auto !important;
-    min-height: 275px !important;
-    height: 100% !important;
+    min-height: 240px !important;
 }
 .daw-audio-panel > .block,
 .daw-audio-panel.block {
     display: flex !important;
     flex-direction: column !important;
     flex: 1 1 auto !important;
-    min-height: 275px !important;
-    height: 100% !important;
+    min-height: 240px !important;
+}
+.daw-audio-panel label[data-testid="block-label"],
+.daw-audio-panel label.float {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-radius: 0 !important;
 }
 .daw-audio-panel .audio-container {
-    min-height: 215px !important;
+    min-height: 190px !important;
     flex: 1 1 auto !important;
     display: flex !important;
     flex-direction: column !important;
@@ -468,7 +908,7 @@ button.daw-close-rack-btn:hover {
 .daw-audio-panel .empty,
 .daw-audio-panel .empty-wrap,
 .daw-audio-panel .empty.small {
-    min-height: 215px !important;
+    min-height: 155px !important;
     height: 100% !important;
     flex: 1 1 auto !important;
     display: flex !important;
@@ -477,22 +917,55 @@ button.daw-close-rack-btn:hover {
     align-items: center !important;
 }
 .daw-audio-panel .upload-container,
+.daw-audio-panel [data-testid="upload-text"],
 .daw-audio-panel .wrap {
-    min-height: 195px !important;
+    min-height: 155px !important;
     flex: 1 1 auto !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: center !important;
     align-items: center !important;
+    padding: 18px 12px !important;
+    box-sizing: border-box !important;
+}
+.daw-audio-panel [data-testid="upload-icon"],
+.daw-audio-panel .upload-container .icon-wrap {
+    margin-top: 4px !important;
+    margin-bottom: 10px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+.daw-output-deck {
+    min-height: 118px !important;
+    margin-bottom: 0 !important;
+}
+.daw-output-deck > .block,
+.daw-output-deck.block {
+    min-height: 118px !important;
+}
+.daw-output-deck .empty,
+.daw-output-deck .empty-wrap,
+.daw-output-deck .empty.small,
+.daw-output-deck .audio-container {
+    min-height: 82px !important;
 }
 .daw-process-btn {
-    margin-top: 10px !important;
-    margin-bottom: 14px !important;
+    margin-top: 8px !important;
+    margin-bottom: 4px !important;
     width: 100% !important;
     font-weight: 700 !important;
     letter-spacing: 0.05em !important;
-    font-size: 14px !important;
-    padding: 10px 20px !important;
+    font-size: 13.5px !important;
+    padding: 10px 18px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        transition: none !important;
+        animation: none !important;
+        transform: none !important;
+    }
 }
 """
 

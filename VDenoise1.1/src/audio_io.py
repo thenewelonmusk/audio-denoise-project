@@ -167,7 +167,7 @@ def generate_spectrogram(
     mag_db = np.clip(mag_db, vmin_db, vmax_db)
 
     # Plot styling: DAW Rackmount Studio Aesthetic (Anti-AI-Slop)
-    fig, ax = plt.subplots(figsize=(8, 3), dpi=100)
+    fig, ax = plt.subplots(figsize=(10, 2.7), dpi=100)
     fig.patch.set_facecolor("#18181b")  # Zinc 900
     ax.set_facecolor("#09090b")        # Zinc 950
 
@@ -187,7 +187,8 @@ def generate_spectrogram(
     cbar.ax.tick_params(colors="#a1a1aa", labelsize=8)
     cbar.outline.set_edgecolor("#27272a")
 
-    ax.set_title(title, color="#f4f4f5", fontsize=10, fontweight="bold", pad=8)
+    if title:
+        ax.set_title(title, color="#f4f4f5", fontsize=10, fontweight="bold", pad=8)
     ax.set_xlabel("Time (s)", color="#a1a1aa", fontsize=9)
     ax.set_ylabel("Frequency (kHz)", color="#a1a1aa", fontsize=9)
     ax.tick_params(colors="#a1a1aa", labelsize=8)
