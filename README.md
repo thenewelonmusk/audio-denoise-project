@@ -1,8 +1,8 @@
-# ACOUSTIC STUDIO // Hệ thống Khử nhiễu Giọng nói & Âm thanh AI
+# Hệ thống Khử nhiễu Giọng nói & Âm thanh AI
 
-**Đồ án môn học:** Trí tuệ Nhân tạo / Xử lý Tín hiệu Số (`UET.CS2046` — Nhóm 13)  
-**Mô hình cốt lõi:** DeepFilterNet3 tinh chỉnh (Fine-tuned) trên dữ liệu tiếng Việt **VIVOS** & tạp âm **UrbanSound8K**  
-**Giao diện:** Acoustic Studio — Digital Audio Workstation (DAW) xây dựng trên **Gradio**
+**Bài tập lớn môn học:** Trí tuệ Nhân tạo (`UET.CS2046` — Nhóm 13)  
+**Mô hình cốt lõi:** DeepFilterNet3 tinh chỉnh (Fine-tuned) trên dữ liệu tiếng Việt **VIVOS** & tạp âm 
+**Giao diện:** xây dựng trên **Gradio**
 
 ---
 
