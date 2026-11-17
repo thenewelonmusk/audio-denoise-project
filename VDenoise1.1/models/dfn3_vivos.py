@@ -105,6 +105,8 @@ def _resolve_model_dir(custom_dir: Optional[Union[str, Path]] = None) -> Path:
         candidates.append(p_env if p_env.is_absolute() else (PROJECT_ROOT / p_env))
 
     candidates.extend([
+        PROJECT_ROOT.parent / "ml" / "final_models" / "dfn3_ft_vivos_v1",
+        PROJECT_ROOT.parent / "final_models" / "dfn3_ft_vivos_v1",
         PROJECT_ROOT / DEFAULT_MODEL_REL_PATH,
         PROJECT_ROOT / "models" / "dfn3_ft_vivos_v1",
         PROJECT_ROOT / "ml" / "final_models" / "dfn3_ft_vivos_v1",
@@ -114,8 +116,7 @@ def _resolve_model_dir(custom_dir: Optional[Union[str, Path]] = None) -> Path:
         if cand.exists() and cand.is_dir():
             return cand.resolve()
 
-    return (PROJECT_ROOT / DEFAULT_MODEL_REL_PATH).resolve()
-
+    return (PROJECT_ROOT.parent / "ml" / "final_models" / "dfn3_ft_vivos_v1").resolve()
 
 # ==============================================================================
 # 2. ENGINE

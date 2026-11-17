@@ -1,0 +1,5 @@
+timestamp,input_file,engine_name,audio_duration_seconds,num_chunks,elapsed_seconds,rtf,peak_ram_mb,ram_delta_mb,within_rtf_target,within_ram_target
+2026-11-16T22:14:12,sample_vn_15s.wav,dfn3_ft_vivos_v1,15.0,1,1.85,0.123,1128.59,488.88,True,True
+2026-11-16T22:14:14,sample_stereo_44k.mp3,dfn3_ft_vivos_v1,15.0,1,1.799,0.12,1203.67,141.82,True,True
+2026-11-16T22:14:16,sample_phone_record.m4a,dfn3_ft_vivos_v1,15.0,1,1.562,0.104,1242.5,118.48,True,False
+2026-11-16T22:14:28,sample_long_150s.wav,dfn3_ft_vivos_v1,150.0,3,12.181,0.081,2713.45,1529.73,True,False

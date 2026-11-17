@@ -23,6 +23,7 @@ import tempfile
 import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 import uuid
+from src.pipeline import run_pipeline
 
 import gradio as gr
 import imageio_ffmpeg
@@ -391,7 +392,7 @@ def get_quick_sample_files() -> List[Tuple[str, str]]:
 # 2. ENGINE SELECTION REGISTRY & METADATA HELPERS
 # ==============================================================================
 
-DEFAULT_ENGINE = "dfnet2"
+DEFAULT_ENGINE = "dfn3_ft_vivos_v1"
 
 ENGINE_METADATA: Dict[str, Dict[str, str]] = {
     "dfnet2": {
@@ -618,144 +619,64 @@ def convert_to_wav_ffmpeg(input_path: str) -> str:
     return str(out_wav_path)
 
 
+
 def process_audio(
     input_path: Optional[str],
     engine_name: Optional[str] = None,
     progress: gr.Progress = gr.Progress(track_tqdm=True),
 ) -> Tuple[Optional[str], Union[str, TelemetryStats], Optional[plt.Figure], Optional[plt.Figure]]:
     """
-    Contract CT-05: Orchestrate file-mode audio denoising pipeline.
-
-    1. Ingests & validates audio format via inspect_and_prepare_audio (CT-01),
-       automatically converting non-WAV inputs (e.g. .m4a, .mp3, .ogg) to .wav via ffmpeg.
-    2. Resolves pluggable AI engine via EngineRegistry.get_engine().
-    3. Handles long audio (> 60s) via chunking and Overlap-Add (OLA) reassembly.
-    4. Computes execution duration and RTF metrics via summarize_timing (CT-03).
-    5. Produces Before and After STFT Spectrograms.
-    6. Closes all matplotlib figures to prevent memory accumulation in Gcf.
-    7. Cleans up any temporary ffmpeg converted files.
-    8. Returns 4-tuple: (output_wav_path, telemetry_stats, spec_before_fig, spec_after_fig).
+    Contract CT-05: Orchestrate file-mode audio denoising pipeline via src.pipeline.run_pipeline (CT-04).
     """
     if not input_path:
         raise gr.Error("Vui lòng tải lên tệp âm thanh hợp lệ (WAV, MP3, M4A, FLAC, OGG) trước khi bắt đầu xử lý.")
 
-    start_time = time.perf_counter()
-    converted_wav_path: Optional[str] = None
+    resolved_engine = engine_name if engine_name else os.environ.get("DENOISE_ENGINE", None)
 
     try:
-        path_obj = Path(input_path)
-        if path_obj.suffix.lower() != ".wav":
-            progress(0.02, desc="Đang chuyển đổi tệp sang định dạng WAV bằng ffmpeg...")
-            try:
-                converted_wav_path = convert_to_wav_ffmpeg(input_path)
-            except AudioValidationError as err:
-                raise gr.Error(f"Lỗi kiểm tra tệp âm thanh: {err}") from err
-            except Exception as err:
-                raise gr.Error(f"Không thể chuyển đổi tệp âm thanh bằng ffmpeg: {err}") from err
-            target_path = converted_wav_path
-        else:
-            target_path = input_path
-
-        progress(0.05, desc="Đang kiểm tra & chuẩn hóa định dạng âm thanh...")
-        try:
-            prep_info = inspect_and_prepare_audio(
-                target_path, spec_title=""
-            )
-        except AudioValidationError as err:
-            raise gr.Error(f"Lỗi kiểm tra tệp âm thanh: {err}") from err
-        except Exception as err:
-            raise gr.Error(f"Không thể đọc hoặc giải mã tệp âm thanh: {err}") from err
-
-        prep_wav_path = prep_info["path"]
-        audio_mono = prep_info["audio_array_mono"]
-        duration = prep_info["duration_seconds"]
-        sr = prep_info["sample_rate"]
-        spec_before_fig = prep_info["spec_fig"]
-
-        resolved_engine = engine_name if engine_name else os.environ.get("DENOISE_ENGINE", None)
-        try:
-            engine = EngineRegistry.get_engine(resolved_engine)
-        except Exception as err:
-            raise gr.Error(f"Lỗi khởi tạo động cơ khử nhiễu AI ({resolved_engine or 'mặc định'}): {err}") from err
-
-        cache_dir = get_output_cache_dir()
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        output_path = cache_dir / f"clean_{uuid.uuid4().hex[:12]}.wav"
-
-        if duration > 60.0:
-            progress(0.2, desc="Tệp dài > 60s: Đang phân đoạn và khử nhiễu từng khối (RAM)...")
-            chunks = chunk_audio(audio_mono, sr=sr, max_chunk_seconds=60.0, overlap_seconds=0.5)
-            clean_chunks = []
-            for idx, chunk in enumerate(chunks):
-                frac = 0.2 + 0.6 * ((idx + 1) / len(chunks))
-                progress(frac, desc=f"Đang xử lý phân đoạn {idx + 1}/{len(chunks)}...")
-                clean_chunks.append(engine.process_array(chunk, sample_rate=sr))
-            
-            progress(0.85, desc="Tái cấu trúc âm thanh Overlap-Add (OLA)...")
-            cleaned_audio = reconstruct_audio_ola(
-                clean_chunks,
-                sr=sr,
-                overlap_seconds=0.5,
-                total_length=len(audio_mono),
-            )
-            save_audio_wav(str(output_path), cleaned_audio, sample_rate=sr)
-        else:
-            progress(0.3, desc="Đang chạy mô hình khử nhiễu âm thanh...")
-            engine.process_file(prep_wav_path, str(output_path))
-            cleaned_audio, _ = sf.read(str(output_path), dtype="float32")
-
-        progress(0.9, desc="Đang kết xuất biểu đồ phổ Spectrogram...")
-        elapsed = time.perf_counter() - start_time
-        timing_stats = summarize_timing(elapsed, duration)
-
-        # After Scientific STFT Spectrogram
-        spec_after_fig = generate_spectrogram(
-            cleaned_audio,
-            sr=sr,
-            title="",
+        res = run_pipeline(
+            input_path=input_path,
+            engine_name=resolved_engine,
+            output_dir=get_output_cache_dir(),
+            progress_callback=lambda frac, desc: progress(frac, desc=desc),
+            log_benchmark=True,
         )
 
-        stats_markdown = format_telemetry_html(timing_stats, sr, engine.name)
+        sr = res["sample_rate"]
+        actual_engine = res["engine_name"]
+        stats_markdown = format_telemetry_html(res, sr, actual_engine)
 
         stats_dict = {
-            "audio_duration_sec": round(float(duration), 3),
-            "processing_time_sec": round(float(elapsed), 3),
-            "rtf": round(float(timing_stats.get("rtf", 0.0)), 3),
+            "audio_duration_sec": res["audio_duration_seconds"],
+            "processing_time_sec": res["elapsed_seconds"],
+            "rtf": res["rtf"],
+            "peak_ram_mb": res["peak_ram_mb"],
+            "num_chunks": res["num_chunks"],
             "sample_rate": sr,
-            "channels": 1,
-            "elapsed_seconds": timing_stats.get("elapsed_seconds", round(float(elapsed), 3)),
-            "audio_duration_seconds": timing_stats.get("audio_duration_seconds", round(float(duration), 3)),
-            "engine_name": engine.name,
+            "channels": res["channels"],
+            "elapsed_seconds": res["elapsed_seconds"],
+            "audio_duration_seconds": res["audio_duration_seconds"],
+            "engine_name": actual_engine,
         }
         telemetry_stats = TelemetryStats(stats_markdown, stats_dict)
-
-        progress(1.0, desc="Khử nhiễu âm thanh thành công!")
 
         # Free all figures from matplotlib global Gcf accumulation
         plt.close("all")
 
-        return str(output_path), telemetry_stats, spec_before_fig, spec_after_fig
+        return res["output_path"], telemetry_stats, res["spec_before"], res["spec_after"]
 
     except gr.Error:
         plt.close("all")
         raise
+    except AudioValidationError as err:
+        plt.close("all")
+        raise gr.Error(f"Lỗi kiểm tra tệp âm thanh: {err}") from err
     except EngineError as err:
         plt.close("all")
         raise gr.Error(f"Động cơ khử nhiễu báo lỗi: {err}") from err
     except Exception as err:
         plt.close("all")
-        raise gr.Error(f"Lỗi không xác định trong quá trình xử lý: {err}") from err
-    finally:
-        if converted_wav_path:
-            try:
-                Path(converted_wav_path).unlink(missing_ok=True)
-            except Exception:
-                pass
-        # Always cleanup the temporary file created by inspect_and_prepare_audio
-        try:
-            Path(prep_wav_path).unlink(missing_ok=True)
-        except Exception:
-            pass
+        raise gr.Error(f"Lỗi không xác định trong quá trình xử lý: {err}") from err 
 
 
 def sync_before_preview(input_path: Optional[str]) -> Optional[str]:

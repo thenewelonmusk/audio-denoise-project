@@ -30,4 +30,8 @@ ml/eval/dnsmos/
 .DS_Store
 Thumbs.db
 
+# dump file
+VDenoise1.1/outputs
+
+
 *.code-workspace
