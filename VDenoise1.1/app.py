@@ -15,6 +15,7 @@ All audio processing is orchestrated via:
 
 from collections.abc import Mapping
 import logging
+import math
 import os
 from pathlib import Path
 import shutil
@@ -283,20 +284,223 @@ def get_initial_telemetry_html() -> str:
 """
 
 
+def _to_float32_unit(arr: np.ndarray) -> np.ndarray:
+    """Convert arbitrary mono audio array to sanitized float32 in [-1.0, 1.0]."""
+    if arr.size == 0:
+        return np.zeros(0, dtype=np.float32)
+    if np.issubdtype(arr.dtype, np.integer):
+        scale = float(np.iinfo(arr.dtype).max)
+        out = arr.astype(np.float32) / (scale if scale > 0 else 32768.0)
+    else:
+        out = arr.astype(np.float32, copy=False)
+    out = np.nan_to_num(out, nan=0.0, posinf=1.0, neginf=-1.0)
+    return np.clip(out, -1.0, 1.0)
+
+
+def _level_to_dbfs(level: float, floor_db: float = -60.0) -> float:
+    """Convert linear amplitude [0, 1] to dBFS clamped to [floor_db, 0.0]."""
+    if not math.isfinite(level) or level <= 1e-6:
+        return floor_db
+    return max(floor_db, min(0.0, 20.0 * math.log10(level)))
+
+
+def _dbfs_to_pct(dbfs: float, floor_db: float = -60.0) -> int:
+    """Map dBFS value in [floor_db, 0.0] to integer percentage [0, 100]."""
+    if dbfs <= floor_db:
+        return 0
+    pct = ((dbfs - floor_db) / abs(floor_db)) * 100.0
+    return int(max(0.0, min(100.0, round(pct))))
+
+
+def _format_session_clock(seconds: float) -> str:
+    """Format elapsed session duration as MM:SS.t (e.g. 00:12.4s)."""
+    safe_sec = max(0.0, float(seconds))
+    mins = int(safe_sec // 60)
+    rem = safe_sec - (mins * 60)
+    return f"{mins:02d}:{rem:04.1f}s"
+
+
+def compute_stream_chunk_metrics(
+    raw_mono_f32: np.ndarray,
+    out_mono_f32: np.ndarray,
+    sample_rate: int,
+    input_channels: int,
+    input_dtype: str,
+    latency_ms: float,
+    prev_metrics: Optional[Dict[str, Any]] = None,
+    stream_mode: str = "wet",
+) -> Dict[str, Any]:
+    """Compute real-time dBFS VU levels, noise attenuation, and rolling RTF for a stream chunk."""
+    prev = dict(prev_metrics) if isinstance(prev_metrics, dict) else {}
+    chunk_samples = int(raw_mono_f32.size)
+    sr = max(1, int(sample_rate))
+    chunk_ms = (chunk_samples / float(sr)) * 1000.0 if chunk_samples > 0 else 200.0
+
+    in_rms = float(np.sqrt(np.mean(np.square(raw_mono_f32)))) if chunk_samples > 0 else 0.0
+    in_peak = float(np.max(np.abs(raw_mono_f32))) if chunk_samples > 0 else 0.0
+    out_rms = float(np.sqrt(np.mean(np.square(out_mono_f32)))) if out_mono_f32.size > 0 else 0.0
+    out_peak = float(np.max(np.abs(out_mono_f32))) if out_mono_f32.size > 0 else 0.0
+
+    in_rms_dbfs = _level_to_dbfs(in_rms)
+    in_peak_dbfs = _level_to_dbfs(in_peak)
+    out_rms_dbfs = _level_to_dbfs(out_rms)
+    out_peak_dbfs = _level_to_dbfs(out_peak)
+
+    if stream_mode == "dry" or in_rms_dbfs <= -58.0:
+        attenuation_db = 0.0
+    else:
+        attenuation_db = max(0.0, in_rms_dbfs - out_rms_dbfs)
+
+    chunk_count = int(prev.get("chunk_count", 0)) + 1
+    total_samples = int(prev.get("total_samples", 0)) + chunk_samples
+    session_duration_sec = float(prev.get("session_duration_sec", 0.0)) + (chunk_samples / float(sr))
+
+    last_latency_ms = max(0.0, float(latency_ms))
+    last_rtf = (last_latency_ms / chunk_ms) if chunk_ms > 0 else 0.0
+    if chunk_count == 1:
+        ema_latency_ms = last_latency_ms
+        ema_rtf = last_rtf
+    else:
+        alpha = 0.35
+        ema_latency_ms = (alpha * last_latency_ms) + ((1.0 - alpha) * float(prev.get("ema_latency_ms", last_latency_ms)))
+        ema_rtf = (alpha * last_rtf) + ((1.0 - alpha) * float(prev.get("ema_rtf", last_rtf)))
+
+    return {
+        "chunk_count": chunk_count,
+        "total_samples": total_samples,
+        "session_duration_sec": session_duration_sec,
+        "chunk_ms": chunk_ms,
+        "last_latency_ms": last_latency_ms,
+        "ema_latency_ms": ema_latency_ms,
+        "last_rtf": last_rtf,
+        "ema_rtf": ema_rtf,
+        "sample_rate": sr,
+        "input_channels": max(1, int(input_channels)),
+        "input_dtype": str(input_dtype or "float32"),
+        "in_rms_dbfs": in_rms_dbfs,
+        "in_peak_dbfs": in_peak_dbfs,
+        "out_rms_dbfs": out_rms_dbfs,
+        "out_peak_dbfs": out_peak_dbfs,
+        "attenuation_db": attenuation_db,
+        "clipping": bool(in_peak >= 0.95),
+    }
+
+
+def get_stream_stage_badge_html(
+    mode: str = "standby",
+    engine_name: Optional[str] = None,
+    mix_pct: int = 100,
+) -> str:
+    """Render live status pill for the Live Stream Console header."""
+    canonical = engine_name.strip().upper() if engine_name else DEFAULT_ENGINE.upper()
+    mix_val = int(max(0, min(100, round(float(mix_pct)))))
+    if mode == "live":
+        return (
+            f'<span class="daw-stream-status-pill is-live">'
+            f'<span class="daw-live-pulse-dot"></span>ON-AIR // WET {mix_val}%'
+            f"</span>"
+        )
+    if mode == "bypass":
+        return (
+            '<span class="daw-stream-status-pill is-bypass">'
+            '<span class="daw-live-pulse-dot"></span>BYPASS // RAW MIC'
+            "</span>"
+        )
+    return (
+        f'<span class="daw-stream-status-pill is-standby">'
+        f'<span class="daw-live-pulse-dot"></span>STANDBY // {canonical}'
+        f"</span>"
+    )
+
+
 def format_stream_telemetry_html(
     engine_name: Optional[str] = None,
     status_text: str = "SẴN SÀNG",
     status_class: str = "status-good",
     banner_text: Optional[str] = None,
+    metrics: Optional[Dict[str, Any]] = None,
+    stream_mode: str = "wet",
+    mix_pct: int = 100,
 ) -> str:
-    """Format live streaming telemetry into 4-card hardware KPI strip matching File Mode."""
+    """Format live streaming telemetry into 4-card hardware KPI strip with live latency & RTF meters."""
     engine_label = engine_name.strip().upper() if engine_name else DEFAULT_ENGINE.upper()
+    mix_val = int(max(0, min(100, round(float(mix_pct)))))
+    is_bypass = stream_mode == "dry"
+
+    if metrics and int(metrics.get("chunk_count", 0)) > 0:
+        ema_lat = float(metrics.get("ema_latency_ms", 0.0))
+        chunk_ms = float(metrics.get("chunk_ms", 200.0))
+        ema_rtf = float(metrics.get("ema_rtf", 0.0))
+        chunk_count = int(metrics.get("chunk_count", 0))
+        session_clock = _format_session_clock(float(metrics.get("session_duration_sec", 0.0)))
+
+        lat_class = "status-good" if ema_lat < 15.0 else ("status-warn" if ema_lat < chunk_ms else "status-alert")
+        lat_meter_pct = min(100, max(4, int((ema_lat / max(15.0, chunk_ms * 0.25)) * 100)))
+
+        if ema_rtf < 0.3:
+            rtf_class = "status-good"
+            rtf_label = "SIÊU NHANH"
+        elif ema_rtf < 1.0:
+            rtf_class = "status-good"
+            rtf_label = "REALTIME"
+        else:
+            rtf_class = "status-warn"
+            rtf_label = "QUÁ TẢI"
+        rtf_meter_pct = min(100, max(4, int(min(ema_rtf, 1.5) / 1.5 * 100)))
+
+        if is_bypass:
+            state_value_html = (
+                '<span class="telemetry-value status-warn">BYPASS</span>'
+                '<span class="telemetry-sub">RAW MIC · NO FILTER</span>'
+            )
+            banner_cls = "is-bypass"
+        else:
+            state_value_html = (
+                '<span class="telemetry-value status-good">● LIVE</span>'
+                f'<span class="telemetry-sub">AI WET · MIX {mix_val}%</span>'
+            )
+            banner_cls = "is-live"
+
+        card2_html = f"""
+        <span class="telemetry-label">Độ trễ Xử lý Khối</span>
+        <span class="telemetry-value {lat_class}">{ema_lat:.1f}<span class="telemetry-unit">ms / {chunk_ms:.0f}ms</span></span>
+        <div class="audio-meter-bar"><div class="audio-meter-fill" style="width: {lat_meter_pct}%;"></div></div>
+        """
+        card3_html = f"""
+        <span class="telemetry-label">Hệ số Thời gian thực (RTF)</span>
+        <span class="telemetry-value {rtf_class}">{ema_rtf:.3f}<span class="telemetry-unit">({rtf_label})</span></span>
+        <div class="audio-meter-bar"><div class="audio-meter-fill" style="width: {rtf_meter_pct}%;"></div></div>
+        """
+        card4_html = f"""
+        <span class="telemetry-label">Phiên thu &amp; Động cơ</span>
+        <span class="telemetry-value">{session_clock}</span>
+        <span class="telemetry-sub">{chunk_count} khối · {engine_label}</span>
+        """
+    else:
+        banner_cls = "is-bypass" if is_bypass else "is-standby"
+        sub_hint = "RAW MIC · NO FILTER" if is_bypass else f"AI WET · MIX {mix_val}%"
+        state_value_html = (
+            f'<span class="telemetry-value {status_class}">{status_text}</span>'
+            f'<span class="telemetry-sub">{sub_hint}</span>'
+        )
+        card2_html = """
+        <span class="telemetry-label">Độ trễ Xử lý Khối</span>
+        <span class="telemetry-value">--<span class="telemetry-unit">ms (&lt; 15ms target)</span></span>
+        <div class="audio-meter-bar"><div class="audio-meter-fill" style="width: 0%;"></div></div>
+        """
+        card3_html = """
+        <span class="telemetry-label">Hệ số Thời gian thực (RTF)</span>
+        <span class="telemetry-value">--<span class="telemetry-unit">(48 kHz MONO)</span></span>
+        <div class="audio-meter-bar"><div class="audio-meter-fill" style="width: 0%;"></div></div>
+        """
+        card4_html = f"""
+        <span class="telemetry-label">Phiên thu &amp; Động cơ</span>
+        <span class="telemetry-value">00:00.0s</span>
+        <span class="telemetry-sub">{engine_label}</span>
+        """
+
     note_html = (
-        f"""
-<div style="font-family: 'JetBrains Mono', Consolas, monospace; font-size: 11.5px; color: #34d399; padding: 8px 12px; background: #090a0c; border: 1px solid #059669; border-radius: 4px; margin-bottom: 10px;">
-    {banner_text}
-</div>
-"""
+        f'<div class="daw-stream-banner {banner_cls}">{banner_text}</div>'
         if banner_text
         else ""
     )
@@ -304,26 +508,27 @@ def format_stream_telemetry_html(
 <div class="telemetry-grid">
     <div class="telemetry-card">
         <span class="telemetry-label">Trạng thái Luồng</span>
-        <span class="telemetry-value {status_class}">{status_text}</span>
+        {state_value_html}
     </div>
     <div class="telemetry-card">
-        <span class="telemetry-label">Động cơ Đang chạy</span>
-        <span class="telemetry-value">{engine_label}</span>
+        {card2_html}
     </div>
     <div class="telemetry-card">
-        <span class="telemetry-label">Cửa sổ Khối &amp; Độ trễ</span>
-        <span class="telemetry-value">200<span class="telemetry-unit">ms (&lt; 15ms target)</span></span>
+        {card3_html}
     </div>
     <div class="telemetry-card">
-        <span class="telemetry-label">Định dạng Chuẩn</span>
-        <span class="telemetry-value">48<span class="telemetry-unit">kHz / MONO</span></span>
+        {card4_html}
     </div>
 </div>
 {note_html}
 """
 
 
-def get_initial_stream_telemetry_html(engine_name: Optional[str] = None) -> str:
+def get_initial_stream_telemetry_html(
+    engine_name: Optional[str] = None,
+    stream_mode: str = "wet",
+    mix_pct: int = 100,
+) -> str:
     """Return default telemetry display for streaming mode."""
     engine_label = engine_name.strip().upper() if engine_name else DEFAULT_ENGINE.upper()
     return format_stream_telemetry_html(
@@ -331,7 +536,111 @@ def get_initial_stream_telemetry_html(engine_name: Optional[str] = None) -> str:
         status_text="STANDBY",
         status_class="status-good",
         banner_text=f"● Trạng thái Streaming ({engine_label}): Sẵn sàng nhận tín hiệu từ Microphone (Độ trễ mục tiêu: &lt; 15ms)",
+        metrics=None,
+        stream_mode=stream_mode,
+        mix_pct=mix_pct,
     )
+
+
+def format_stream_vu_bridge_html(
+    metrics: Optional[Dict[str, Any]] = None,
+    stream_mode: str = "wet",
+    mix_pct: int = 100,
+) -> str:
+    """Render hardware-styled real-time VU & Noise Attenuation meter bridge."""
+    mix_val = int(max(0, min(100, round(float(mix_pct)))))
+    is_bypass = stream_mode == "dry"
+    has_live = bool(metrics and int(metrics.get("chunk_count", 0)) > 0)
+
+    if has_live and metrics is not None:
+        in_rms = float(metrics.get("in_rms_dbfs", -60.0))
+        in_pk = float(metrics.get("in_peak_dbfs", -60.0))
+        out_rms = float(metrics.get("out_rms_dbfs", -60.0))
+        out_pk = float(metrics.get("out_peak_dbfs", -60.0))
+        atten = float(metrics.get("attenuation_db", 0.0))
+        clipping = bool(metrics.get("clipping", False))
+
+        in_pct = _dbfs_to_pct(in_rms)
+        out_pct = _dbfs_to_pct(out_rms)
+        atten_pct = 0 if is_bypass else int(max(0.0, min(100.0, round((atten / 24.0) * 100.0))))
+
+        in_readout = f"{in_rms:5.1f} dB<small>PK {in_pk:4.0f}</small>"
+        out_readout = f"{out_rms:5.1f} dB<small>PK {out_pk:4.0f}</small>"
+        att_readout = (
+            '0.0 dB<small>BYPASS</small>'
+            if is_bypass
+            else f"-{atten:4.1f} dB<small>SUPPR</small>"
+        )
+        clip_cls = "is-lit" if clipping else ""
+        clip_text = "CLIP PEAK!" if clipping else "HEADROOM OK"
+    else:
+        in_pct = 0
+        out_pct = 0
+        atten_pct = 0
+        in_readout = '--.- dB<small>IDLE</small>'
+        out_readout = '--.- dB<small>IDLE</small>'
+        att_readout = '0.0 dB<small>BYPASS</small>' if is_bypass else '--.- dB<small>WAIT</small>'
+        clip_cls = ""
+        clip_text = "HEADROOM IDLE"
+
+    mode_chip_cls = "is-dry" if is_bypass else "is-wet"
+    mode_chip_text = "BYPASS · RAW MIC" if is_bypass else f"AI WET · MIX {mix_val}%"
+    out_sublabel = "BYPASS" if is_bypass else "CLEANED"
+    att_fill_cls = "vu-muted" if is_bypass else "vu-att"
+
+    return f"""
+<div class="daw-vu-bridge-card">
+    <div class="daw-vu-bridge-header">
+        <div class="daw-rail-section-label" style="margin: 0;">CẦU ĐO TÍN HIỆU &amp; SUY GIẢM TẠP ÂM // REAL-TIME VU &amp; ATTENUATION BRIDGE</div>
+        <div class="daw-vu-bridge-badges">
+            <span class="daw-vu-chip {mode_chip_cls}">{mode_chip_text}</span>
+            <span class="daw-vu-clip-led {clip_cls}">{clip_text}</span>
+        </div>
+    </div>
+    <div class="daw-vu-scale-row">
+        <div></div>
+        <div class="daw-vu-scale-ticks">
+            <span>-60</span>
+            <span>-48</span>
+            <span>-36</span>
+            <span>-24</span>
+            <span>-12</span>
+            <span>-6</span>
+            <span>0 dBFS</span>
+        </div>
+        <div></div>
+    </div>
+    <div class="daw-vu-meter-row">
+        <div class="daw-vu-meter-label">IN <span>RAW MIC</span></div>
+        <div class="daw-vu-meter-track">
+            <div class="daw-vu-meter-fill vu-in" style="width: {in_pct}%;"></div>
+        </div>
+        <div class="daw-vu-meter-readout">{in_readout}</div>
+    </div>
+    <div class="daw-vu-meter-row">
+        <div class="daw-vu-meter-label">OUT <span>{out_sublabel}</span></div>
+        <div class="daw-vu-meter-track">
+            <div class="daw-vu-meter-fill vu-out" style="width: {out_pct}%;"></div>
+        </div>
+        <div class="daw-vu-meter-readout">{out_readout}</div>
+    </div>
+    <div class="daw-vu-meter-row">
+        <div class="daw-vu-meter-label">ATTEN <span>NOISE Δ</span></div>
+        <div class="daw-vu-meter-track">
+            <div class="daw-vu-meter-fill {att_fill_cls}" style="width: {atten_pct}%;"></div>
+        </div>
+        <div class="daw-vu-meter-readout">{att_readout}</div>
+    </div>
+</div>
+"""
+
+
+def get_initial_stream_vu_bridge_html(
+    stream_mode: str = "wet",
+    mix_pct: int = 100,
+) -> str:
+    """Return initial standby VU meter bridge markup."""
+    return format_stream_vu_bridge_html(metrics=None, stream_mode=stream_mode, mix_pct=mix_pct)
 
 
 def get_active_engine_badge_html(engine_name: Optional[str] = None) -> str:
@@ -344,32 +653,82 @@ def get_active_engine_badge_html(engine_name: Optional[str] = None) -> str:
     )
 
 
-def get_stream_signal_chain_html(engine_name: Optional[str] = None) -> str:
-    """Render live DSP signal routing card for the Live Streaming right stage."""
+def get_stream_signal_chain_html(
+    engine_name: Optional[str] = None,
+    metrics: Optional[Dict[str, Any]] = None,
+    stream_mode: str = "wet",
+    mix_pct: int = 100,
+) -> str:
+    """Render live DSP signal routing card with active runtime node telemetry."""
     canonical = engine_name.strip().upper() if engine_name else DEFAULT_ENGINE.upper()
+    mix_val = int(max(0, min(100, round(float(mix_pct)))))
+    is_bypass = stream_mode == "dry"
+    has_live = bool(metrics and int(metrics.get("chunk_count", 0)) > 0)
+
+    if has_live and metrics is not None:
+        sr_khz = float(metrics.get("sample_rate", 48000)) / 1000.0
+        in_ch = int(metrics.get("input_channels", 1))
+        in_dtype = str(metrics.get("input_dtype", "float32"))
+        chunk_ms = float(metrics.get("chunk_ms", 200.0))
+        ema_lat = float(metrics.get("ema_latency_ms", 0.0))
+        out_rms = float(metrics.get("out_rms_dbfs", -60.0))
+        clipping = bool(metrics.get("clipping", False))
+
+        node1_cls = "is-active"
+        node2_cls = "is-active"
+        node3_cls = "is-bypass" if is_bypass else "is-active"
+        node4_cls = "is-active"
+
+        meta1 = f"{sr_khz:g} kHz · {in_dtype} · {chunk_ms:.0f}ms"
+        meta2 = f"{in_ch}ch → Mono · {'CLIP GUARD' if clipping else 'SAFE PEAK'}"
+        meta3 = "BYPASSED · DRY PASS" if is_bypass else f"{ema_lat:.1f} ms/khối · MIX {mix_val}%"
+        meta4 = f"AUTOPLAY · {out_rms:.1f} dBFS"
+    else:
+        node1_cls = ""
+        node2_cls = ""
+        node3_cls = "is-bypass" if is_bypass else ""
+        node4_cls = ""
+
+        meta1 = "STANDBY · 200ms/khối"
+        meta2 = "48 kHz · Mono Ready"
+        meta3 = "BYPASS ARMED (DRY)" if is_bypass else f"ARMED · MIX {mix_val}%"
+        meta4 = "AUTOPLAY STREAMING"
+
     return f"""
 <div class="daw-signal-chain-card">
     <div class="daw-rail-section-label" style="margin-top: 0;">ĐƯỜNG TRUYỀN TÍN HIỆU THỜI GIAN THỰC // LIVE DSP PIPELINE</div>
     <div class="daw-signal-chain-flow">
-        <div class="daw-signal-node">
-            <div class="daw-signal-node-step">01 · INPUT</div>
-            <div class="daw-signal-node-title">WebRTC Mic</div>
-            <div class="daw-signal-node-desc">Thu luồng âm thanh 200ms/khối trực tiếp từ trình duyệt.</div>
+        <div class="daw-signal-node {node1_cls}">
+            <div>
+                <div class="daw-signal-node-step">01 · INPUT</div>
+                <div class="daw-signal-node-title">WebRTC Mic</div>
+                <div class="daw-signal-node-desc">Thu luồng âm thanh 200ms/khối trực tiếp từ trình duyệt.</div>
+            </div>
+            <div class="daw-signal-node-meta">{meta1}</div>
         </div>
-        <div class="daw-signal-node">
-            <div class="daw-signal-node-step">02 · NORMALIZE</div>
-            <div class="daw-signal-node-title">Mono Downmix</div>
-            <div class="daw-signal-node-desc">Chuẩn hóa đơn kênh float32 / int16 đồng bộ tần số.</div>
+        <div class="daw-signal-node {node2_cls}">
+            <div>
+                <div class="daw-signal-node-step">02 · NORMALIZE</div>
+                <div class="daw-signal-node-title">Mono Downmix</div>
+                <div class="daw-signal-node-desc">Chuẩn hóa đơn kênh float32 / int16 đồng bộ tần số.</div>
+            </div>
+            <div class="daw-signal-node-meta">{meta2}</div>
         </div>
-        <div class="daw-signal-node">
-            <div class="daw-signal-node-step">03 · DENOISE</div>
-            <div class="daw-signal-node-title">{canonical}</div>
-            <div class="daw-signal-node-desc">Xử lý khử nhiễu liên tục với bộ nhớ trạng thái phiên.</div>
+        <div class="daw-signal-node {node3_cls}">
+            <div>
+                <div class="daw-signal-node-step">03 · {'BYPASS' if is_bypass else 'DENOISE'}</div>
+                <div class="daw-signal-node-title">{canonical}</div>
+                <div class="daw-signal-node-desc">{'Truyền thẳng âm gốc không qua bộ lọc AI để đối chiếu A/B.' if is_bypass else 'Xử lý khử nhiễu liên tục với bộ nhớ trạng thái phiên.'}</div>
+            </div>
+            <div class="daw-signal-node-meta">{meta3}</div>
         </div>
-        <div class="daw-signal-node">
-            <div class="daw-signal-node-step">04 · OUTPUT</div>
-            <div class="daw-signal-node-title">Live Monitor</div>
-            <div class="daw-signal-node-desc">Phát lại luồng sạch tức thì (Autoplay Streaming).</div>
+        <div class="daw-signal-node {node4_cls}">
+            <div>
+                <div class="daw-signal-node-step">04 · OUTPUT</div>
+                <div class="daw-signal-node-title">Live Monitor</div>
+                <div class="daw-signal-node-desc">Phát lại luồng sạch tức thì (Autoplay Streaming).</div>
+            </div>
+            <div class="daw-signal-node-meta">{meta4}</div>
         </div>
     </div>
 </div>
@@ -841,6 +1200,234 @@ def reset_stream_session(engine_name: Optional[str] = None) -> Tuple[Any, str]:
     return new_state, feedback_html
 
 
+def process_stream_chunk_for_ui(
+    audio_chunk: Any,
+    state: Any = None,
+    ui_metrics: Optional[Dict[str, Any]] = None,
+    engine_name: Optional[str] = None,
+    stream_mode: str = "wet",
+    mix_pct: float = 100.0,
+) -> Tuple[Optional[Tuple[int, np.ndarray]], Any, Optional[Dict[str, Any]], str, str, str, str]:
+    """
+    UI-facing streaming handler wrapping process_stream_chunk with:
+    - Real-time Dry/Wet A/B bypass and wet-mix blending
+    - Live dBFS Input/Output VU & Noise Attenuation metering
+    - Per-chunk inference latency, rolling RTF, and DSP pipeline telemetry
+    """
+    resolved_engine = engine_name if engine_name else os.environ.get("DENOISE_ENGINE", None)
+    canonical = (resolved_engine or DEFAULT_ENGINE).strip().lower()
+    mode = "dry" if str(stream_mode).strip().lower() == "dry" else "wet"
+    mix_val = int(max(0, min(100, round(float(mix_pct)))))
+
+    if audio_chunk is None:
+        return (
+            None,
+            state,
+            ui_metrics,
+            get_initial_stream_telemetry_html(canonical, stream_mode=mode, mix_pct=mix_val),
+            get_initial_stream_vu_bridge_html(stream_mode=mode, mix_pct=mix_val),
+            get_stream_signal_chain_html(canonical, metrics=ui_metrics, stream_mode=mode, mix_pct=mix_val),
+            get_stream_stage_badge_html("standby", engine_name=canonical, mix_pct=mix_val),
+        )
+
+    if isinstance(audio_chunk, tuple):
+        sr, raw_chunk = audio_chunk
+    else:
+        sr = 48000
+        raw_chunk = audio_chunk
+
+    if raw_chunk is None or (isinstance(raw_chunk, np.ndarray) and raw_chunk.size == 0):
+        return (
+            None,
+            state,
+            ui_metrics,
+            get_initial_stream_telemetry_html(canonical, stream_mode=mode, mix_pct=mix_val),
+            get_initial_stream_vu_bridge_html(stream_mode=mode, mix_pct=mix_val),
+            get_stream_signal_chain_html(canonical, metrics=ui_metrics, stream_mode=mode, mix_pct=mix_val),
+            get_stream_stage_badge_html("standby", engine_name=canonical, mix_pct=mix_val),
+        )
+
+    arr = np.asarray(raw_chunk)
+    input_channels = int(arr.shape[1]) if arr.ndim > 1 else 1
+    orig_dtype = arr.dtype
+    raw_mono = downmix_to_mono(arr) if arr.ndim > 1 else arr
+    raw_mono_f32 = _to_float32_unit(raw_mono)
+
+    t0 = time.perf_counter()
+    if mode == "dry":
+        new_state = state
+        out_mono_f32 = raw_mono_f32
+        if np.issubdtype(orig_dtype, np.integer):
+            out_arr = (np.clip(out_mono_f32, -1.0, 1.0) * 32767.0).astype(np.int16)
+        else:
+            out_arr = out_mono_f32.astype(np.float32)
+        out_tuple: Optional[Tuple[int, np.ndarray]] = (int(sr), out_arr)
+    else:
+        out_tuple, new_state = process_stream_chunk(
+            (int(sr), arr),
+            state=state,
+            engine_name=resolved_engine,
+        )
+        if out_tuple is None:
+            return (
+                None,
+                new_state,
+                ui_metrics,
+                get_initial_stream_telemetry_html(canonical, stream_mode=mode, mix_pct=mix_val),
+                get_initial_stream_vu_bridge_html(stream_mode=mode, mix_pct=mix_val),
+                get_stream_signal_chain_html(canonical, metrics=ui_metrics, stream_mode=mode, mix_pct=mix_val),
+                get_stream_stage_badge_html("standby", engine_name=canonical, mix_pct=mix_val),
+            )
+        out_sr, wet_arr = out_tuple
+        wet_mono_f32 = _to_float32_unit(np.asarray(wet_arr))
+        if mix_val < 100 and wet_mono_f32.shape == raw_mono_f32.shape:
+            alpha = mix_val / 100.0
+            out_mono_f32 = np.clip((alpha * wet_mono_f32) + ((1.0 - alpha) * raw_mono_f32), -1.0, 1.0)
+            if np.issubdtype(orig_dtype, np.integer):
+                blended = (out_mono_f32 * 32767.0).astype(np.int16)
+            else:
+                blended = out_mono_f32.astype(np.float32)
+            out_tuple = (out_sr, blended)
+        else:
+            out_mono_f32 = wet_mono_f32
+    latency_ms = (time.perf_counter() - t0) * 1000.0
+
+    updated_metrics = compute_stream_chunk_metrics(
+        raw_mono_f32=raw_mono_f32,
+        out_mono_f32=out_mono_f32,
+        sample_rate=int(sr),
+        input_channels=input_channels,
+        input_dtype=str(orig_dtype),
+        latency_ms=latency_ms,
+        prev_metrics=ui_metrics,
+        stream_mode=mode,
+    )
+
+    if mode == "dry":
+        banner_text = (
+            f"● CHẾ ĐỘ BYPASS (ÂM GỐC): Đang phát thẳng tín hiệu từ Microphone không qua {canonical.upper()} "
+            f"để đối chiếu A/B trực tiếp."
+        )
+        badge_mode = "bypass"
+    else:
+        banner_text = (
+            f"● ĐANG XỬ LÝ TRỰC TIẾP ({canonical.upper()} · MIX {mix_val}%): "
+            f"Độ trễ khối {updated_metrics['ema_latency_ms']:.1f}ms · "
+            f"Suy giảm tạp âm -{updated_metrics['attenuation_db']:.1f} dB"
+        )
+        badge_mode = "live"
+
+    telemetry_html = format_stream_telemetry_html(
+        engine_name=canonical,
+        status_text="BYPASS" if mode == "dry" else "LIVE",
+        status_class="status-warn" if mode == "dry" else "status-good",
+        banner_text=banner_text,
+        metrics=updated_metrics,
+        stream_mode=mode,
+        mix_pct=mix_val,
+    )
+    vu_html = format_stream_vu_bridge_html(
+        metrics=updated_metrics,
+        stream_mode=mode,
+        mix_pct=mix_val,
+    )
+    chain_html = get_stream_signal_chain_html(
+        engine_name=canonical,
+        metrics=updated_metrics,
+        stream_mode=mode,
+        mix_pct=mix_val,
+    )
+    badge_html = get_stream_stage_badge_html(
+        mode=badge_mode,
+        engine_name=canonical,
+        mix_pct=mix_val,
+    )
+    return out_tuple, new_state, updated_metrics, telemetry_html, vu_html, chain_html, badge_html
+
+
+def reset_stream_session_for_ui(
+    engine_name: Optional[str] = None,
+    stream_mode: str = "wet",
+    mix_pct: float = 100.0,
+) -> Tuple[Any, None, str, str, str, str]:
+    """Reset both engine streaming state and live UI telemetry/VU bridge."""
+    new_state, _ = reset_stream_session(engine_name=engine_name)
+    resolved_engine = engine_name if engine_name else os.environ.get("DENOISE_ENGINE", None)
+    engine = EngineRegistry.get_engine(resolved_engine)
+    mode = "dry" if str(stream_mode).strip().lower() == "dry" else "wet"
+    mix_val = int(max(0, min(100, round(float(mix_pct)))))
+
+    telemetry_html = format_stream_telemetry_html(
+        engine_name=engine.name,
+        status_text="ĐÃ ĐẶT LẠI",
+        status_class="status-good",
+        banner_text=f"✓ Bộ đệm streaming đã được đặt lại thành công ({engine.name.upper()}). Phiên mới sẵn sàng.",
+        metrics=None,
+        stream_mode=mode,
+        mix_pct=mix_val,
+    )
+    vu_html = get_initial_stream_vu_bridge_html(stream_mode=mode, mix_pct=mix_val)
+    chain_html = get_stream_signal_chain_html(engine.name, metrics=None, stream_mode=mode, mix_pct=mix_val)
+    badge_html = get_stream_stage_badge_html("standby", engine_name=engine.name, mix_pct=mix_val)
+    return new_state, None, telemetry_html, vu_html, chain_html, badge_html
+
+
+def on_stream_controls_change(
+    engine_name: Optional[str],
+    stream_mode: str,
+    mix_pct: float,
+    ui_metrics: Optional[Dict[str, Any]] = None,
+) -> Tuple[str, str, str, str]:
+    """Immediately reflect Dry/Wet Bypass and Mix % adjustments on the Live Stream Console."""
+    canonical = (engine_name or DEFAULT_ENGINE).strip().lower()
+    mode = "dry" if str(stream_mode).strip().lower() == "dry" else "wet"
+    mix_val = int(max(0, min(100, round(float(mix_pct)))))
+    has_live = bool(ui_metrics and int(ui_metrics.get("chunk_count", 0)) > 0)
+
+    if mode == "dry":
+        banner_text = (
+            f"● CHẾ ĐỘ BYPASS (ÂM GỐC): Đã tạm ngắt bộ lọc {canonical.upper()} để nghe âm gốc từ Microphone."
+        )
+        badge_mode = "bypass"
+        status_text = "BYPASS"
+        status_cls = "status-warn"
+    else:
+        banner_text = (
+            f"● Trạng thái Streaming ({canonical.upper()} · MIX {mix_val}%): "
+            f"{'Đang khử nhiễu trực tiếp.' if has_live else 'Sẵn sàng nhận tín hiệu từ Microphone (Độ trễ mục tiêu: &lt; 15ms)'}"
+        )
+        badge_mode = "live" if has_live else "standby"
+        status_text = "LIVE" if has_live else "STANDBY"
+        status_cls = "status-good"
+
+    telemetry_html = format_stream_telemetry_html(
+        engine_name=canonical,
+        status_text=status_text,
+        status_class=status_cls,
+        banner_text=banner_text,
+        metrics=ui_metrics if has_live else None,
+        stream_mode=mode,
+        mix_pct=mix_val,
+    )
+    vu_html = format_stream_vu_bridge_html(
+        metrics=ui_metrics if has_live else None,
+        stream_mode=mode,
+        mix_pct=mix_val,
+    )
+    chain_html = get_stream_signal_chain_html(
+        engine_name=canonical,
+        metrics=ui_metrics if has_live else None,
+        stream_mode=mode,
+        mix_pct=mix_val,
+    )
+    badge_html = get_stream_stage_badge_html(
+        mode=badge_mode,
+        engine_name=canonical,
+        mix_pct=mix_val,
+    )
+    return telemetry_html, vu_html, chain_html, badge_html
+
+
 def _make_sample_loader(sample_path: str, sample_label: str):
     """Create a click handler that loads a workspace sample file into input_audio."""
 
@@ -935,8 +1522,9 @@ def create_app() -> gr.Blocks:
                 )
             gr.HTML(value=get_engine_inventory_html())
 
-        # Shared streaming session state
+        # Shared streaming session state (engine filter state + live UI metrics)
         stream_state = gr.State(None)
+        stream_ui_metrics = gr.State(None)
 
         def toggle_engine_rack(is_visible: bool):
             return gr.update(visible=not is_visible), not is_visible
@@ -998,6 +1586,31 @@ def create_app() -> gr.Blocks:
                             type="numpy",
                             elem_classes=["daw-audio-panel", "daw-audio-stream-panel"],
                         )
+                        with gr.Group(elem_classes=["daw-live-channel-strip"]):
+                            gr.HTML(
+                                '<div class="daw-rail-section-label" style="margin-top: 0; margin-bottom: 4px;">'
+                                "BÀN ĐIỀU KHIỂN KÊNH // LIVE DSP STRIP"
+                                "</div>"
+                            )
+                            stream_mode_radio = gr.Radio(
+                                choices=[
+                                    ("AI Khử nhiễu", "wet"),
+                                    ("Bypass (Gốc)", "dry"),
+                                ],
+                                value="wet",
+                                label="CHẾ ĐỘ ĐƯỜNG TRUYỀN (A/B MONITOR)",
+                                interactive=True,
+                                elem_classes=["daw-stream-mode-radio"],
+                            )
+                            stream_mix_slider = gr.Slider(
+                                minimum=0,
+                                maximum=100,
+                                value=100,
+                                step=5,
+                                label="TỶ LỆ KHỬ NHIỄU (DRY / WET MIX %)",
+                                interactive=True,
+                                elem_classes=["daw-stream-mix-slider"],
+                            )
                         reset_btn = gr.Button(
                             "Đặt lại Bộ đệm (Reset Stream)",
                             variant="secondary",
@@ -1070,19 +1683,31 @@ def create_app() -> gr.Blocks:
 
                 # STAGE B: Live Streaming Broadcast Stage
                 with gr.Column(visible=False, elem_classes=["daw-stage-panel", "daw-stream-stage"]) as stream_stage:
-                    gr.HTML("""
-                    <div class="daw-stage-header-bar">
+                    with gr.Row(elem_classes=["daw-stream-stage-header"]):
+                        gr.HTML("""
                         <span class="daw-stage-title"><span class="daw-stage-title-accent">●</span> GIÁM SÁT LUỒNG TRỰC TIẾP // LIVE STREAM CONSOLE</span>
-                    </div>
-                    """)
+                        """)
+                        stream_stage_badge = gr.HTML(
+                            value=get_stream_stage_badge_html("standby", engine_name=initial_engine, mix_pct=100),
+                            elem_classes=["daw-badge-wrapper"],
+                        )
 
                     stream_telemetry = gr.HTML(value=get_initial_stream_telemetry_html(initial_engine))
+
+                    stream_vu_bridge = gr.HTML(value=get_initial_stream_vu_bridge_html(stream_mode="wet", mix_pct=100))
+
+                    gr.HTML("""
+                    <div class="daw-live-monitor-header">
+                        <div class="daw-rail-section-label" style="margin: 0;">ĐẦU RA LUỒNG TRỰC TIẾP (LIVE MONITOR)</div>
+                        <span class="daw-monitor-hint">🎧 Khuyên dùng tai nghe để tránh hú phản hồi âm thanh</span>
+                    </div>
+                    """)
 
                     live_output = gr.Audio(
                         label="Âm thanh Đã Khử Nhiễu (Live Output)",
                         streaming=True,
                         autoplay=True,
-                        elem_classes=["daw-audio-panel", "daw-audio-stream-panel", "daw-output-deck"],
+                        elem_classes=["daw-audio-panel", "daw-audio-stream-panel", "daw-output-deck", "daw-compare-after"],
                     )
 
                     stream_signal_chain = gr.HTML(value=get_stream_signal_chain_html(initial_engine))
@@ -1130,17 +1755,65 @@ def create_app() -> gr.Blocks:
         )
 
         mic_input.stream(
-            fn=process_stream_chunk,
-            inputs=[mic_input, stream_state, selected_engine],
-            outputs=[live_output, stream_state],
+            fn=process_stream_chunk_for_ui,
+            inputs=[
+                mic_input,
+                stream_state,
+                stream_ui_metrics,
+                selected_engine,
+                stream_mode_radio,
+                stream_mix_slider,
+            ],
+            outputs=[
+                live_output,
+                stream_state,
+                stream_ui_metrics,
+                stream_telemetry,
+                stream_vu_bridge,
+                stream_signal_chain,
+                stream_stage_badge,
+            ],
             stream_every=0.2,
         )
 
         reset_btn.click(
-            fn=reset_stream_session,
-            inputs=[selected_engine],
-            outputs=[stream_state, stream_telemetry],
+            fn=reset_stream_session_for_ui,
+            inputs=[selected_engine, stream_mode_radio, stream_mix_slider],
+            outputs=[
+                stream_state,
+                stream_ui_metrics,
+                stream_telemetry,
+                stream_vu_bridge,
+                stream_signal_chain,
+                stream_stage_badge,
+            ],
         )
+
+        stream_mode_radio.change(
+            fn=on_stream_controls_change,
+            inputs=[selected_engine, stream_mode_radio, stream_mix_slider, stream_ui_metrics],
+            outputs=[stream_telemetry, stream_vu_bridge, stream_signal_chain, stream_stage_badge],
+        )
+        stream_mix_slider.change(
+            fn=on_stream_controls_change,
+            inputs=[selected_engine, stream_mode_radio, stream_mix_slider, stream_ui_metrics],
+            outputs=[stream_telemetry, stream_vu_bridge, stream_signal_chain, stream_stage_badge],
+        )
+
+        def _sync_stream_stage_on_engine_change(eng: str, mode: str, mix: float):
+            clean_mode = "dry" if str(mode).strip().lower() == "dry" else "wet"
+            mix_val = int(max(0, min(100, round(float(mix)))))
+            return (
+                get_active_engine_badge_html(eng),
+                None,
+                get_initial_stream_vu_bridge_html(stream_mode=clean_mode, mix_pct=mix_val),
+                get_stream_signal_chain_html(eng, metrics=None, stream_mode=clean_mode, mix_pct=mix_val),
+                get_stream_stage_badge_html(
+                    "bypass" if clean_mode == "dry" else "standby",
+                    engine_name=eng,
+                    mix_pct=mix_val,
+                ),
+            )
 
         selected_engine.change(
             fn=on_engine_change,
@@ -1148,9 +1821,15 @@ def create_app() -> gr.Blocks:
             outputs=[engine_info_box, stream_state, stream_telemetry],
         )
         selected_engine.change(
-            fn=lambda eng: (get_active_engine_badge_html(eng), get_stream_signal_chain_html(eng)),
-            inputs=[selected_engine],
-            outputs=[active_engine_badge, stream_signal_chain],
+            fn=_sync_stream_stage_on_engine_change,
+            inputs=[selected_engine, stream_mode_radio, stream_mix_slider],
+            outputs=[
+                active_engine_badge,
+                stream_ui_metrics,
+                stream_vu_bridge,
+                stream_signal_chain,
+                stream_stage_badge,
+            ],
         )
 
     return demo

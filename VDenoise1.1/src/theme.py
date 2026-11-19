@@ -37,7 +37,6 @@ class AudioWorkstationTheme(Base):
             fonts.GoogleFont("Space Grotesk", weights=(400, 500, 600, 700)),
             "ui-sans-serif",
             "system-ui",
-            "-apple-system",
             "sans-serif",
         ),
         font_mono: tuple[fonts.Font | str, ...] = (
@@ -123,6 +122,28 @@ class AudioWorkstationTheme(Base):
             input_border_color_dark="*neutral_700",
             input_border_color_focus="*primary_500",
             input_border_color_focus_dark="*primary_500",
+
+            # Radio / Checkbox / Slider Hardware Controls
+            slider_color="*primary_500",
+            slider_color_dark="*primary_500",
+            checkbox_label_background_fill="*neutral_900",
+            checkbox_label_background_fill_dark="*neutral_900",
+            checkbox_label_background_fill_hover="*neutral_800",
+            checkbox_label_background_fill_hover_dark="*neutral_800",
+            checkbox_label_background_fill_selected="*primary_950",
+            checkbox_label_background_fill_selected_dark="*primary_950",
+            checkbox_label_border_color="*neutral_700",
+            checkbox_label_border_color_dark="*neutral_700",
+            checkbox_label_border_color_selected="*primary_500",
+            checkbox_label_border_color_selected_dark="*primary_500",
+            checkbox_label_text_color="*neutral_300",
+            checkbox_label_text_color_dark="*neutral_300",
+            checkbox_label_text_color_selected="*primary_300",
+            checkbox_label_text_color_selected_dark="*primary_300",
+            checkbox_background_color_selected="*primary_500",
+            checkbox_background_color_selected_dark="*primary_500",
+            checkbox_border_color_selected="*primary_500",
+            checkbox_border_color_selected_dark="*primary_500",
 
             # Tabs styling
             color_accent_soft="*neutral_800",
@@ -790,19 +811,473 @@ button.daw-sample-chip-btn:hover {
     overflow: hidden !important;
 }
 
+/* ==========================================================================
+   LIVE STREAMING BROADCAST & METERING CONSOLE
+   ========================================================================== */
+@keyframes daw-pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.4;
+        transform: scale(0.85);
+    }
+}
+
+.daw-stream-stage-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 12px !important;
+    border-bottom: 1px solid #27272a !important;
+    gap: 10px !important;
+    flex-wrap: nowrap !important;
+}
+.daw-stream-stage-header > :first-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+.daw-stream-stage-header > :last-child {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: fit-content !important;
+}
+
+.daw-stream-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid #3f3f46;
+    background: #18181b;
+    color: #d4d4d8;
+    white-space: nowrap;
+}
+.daw-stream-status-pill.is-standby {
+    background: #141518;
+    border-color: #3f3f46;
+    color: #a1a1aa;
+}
+.daw-stream-status-pill.is-live {
+    background: #064e3b;
+    border-color: #10b981;
+    color: #6ee7b7;
+}
+.daw-stream-status-pill.is-bypass {
+    background: #451a03;
+    border-color: #d97706;
+    color: #fcd34d;
+}
+.daw-live-pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background: #71717a;
+    display: inline-block;
+    flex-shrink: 0;
+}
+.daw-stream-status-pill.is-live .daw-live-pulse-dot {
+    background: #10b981;
+    animation: daw-pulse 1.4s ease-in-out infinite;
+}
+.daw-stream-status-pill.is-bypass .daw-live-pulse-dot {
+    background: #f59e0b;
+    animation: daw-pulse 1.4s ease-in-out infinite;
+}
+
+/* Stream Telemetry Banner */
+.daw-stream-banner {
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 11.5px;
+    line-height: 1.45;
+    padding: 8px 12px;
+    background: #090a0c;
+    border: 1px solid #059669;
+    border-left: 3px solid #10b981;
+    border-radius: 4px;
+    color: #34d399;
+    margin-bottom: 10px;
+}
+.daw-stream-banner.is-bypass {
+    border-color: #b45309;
+    border-left-color: #f59e0b;
+    color: #fcd34d;
+}
+.daw-stream-banner.is-standby {
+    border-color: #27272a;
+    border-left-color: #10b981;
+    color: #d4d4d8;
+}
+
+/* Left Rail Live DSP Channel Strip */
+.daw-live-channel-strip {
+    background: #0d0e11 !important;
+    border: 1px solid #27272a !important;
+    border-radius: 6px !important;
+    padding: 10px 12px !important;
+    margin-top: 8px !important;
+    margin-bottom: 6px !important;
+    overflow: visible !important;
+}
+.daw-live-channel-strip > *,
+.daw-live-channel-strip .styler,
+.daw-live-channel-strip .block,
+.daw-live-channel-strip .form,
+.daw-live-channel-strip fieldset,
+.daw-live-channel-strip .html-container,
+.daw-live-channel-strip .prose {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+}
+.daw-live-channel-strip label span,
+.daw-live-channel-strip [data-testid="block-info"] {
+    font-family: 'JetBrains Mono', Consolas, monospace !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    color: #a1a1aa !important;
+}
+.daw-stream-mode-radio .wrap {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    margin-top: 5px !important;
+    margin-bottom: 10px !important;
+}
+.daw-stream-mode-radio label {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 7px 6px !important;
+    border-radius: 4px !important;
+    border: 1px solid #27272a !important;
+    background: #141518 !important;
+    color: #d4d4d8 !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    cursor: pointer !important;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease !important;
+}
+.daw-stream-mode-radio label.selected {
+    background: #064e3b !important;
+    border-color: #10b981 !important;
+    color: #a7f3d0 !important;
+}
+.daw-stream-mix-slider,
+.daw-stream-mix-slider > *,
+.daw-stream-mix-slider .wrap,
+.daw-stream-mix-slider .range_input_container,
+.daw-stream-mix-slider .head {
+    overflow: visible !important;
+    scrollbar-width: none !important;
+}
+.daw-stream-mix-slider {
+    margin-top: 4px !important;
+    padding-bottom: 2px !important;
+}
+.daw-stream-mix-slider input[type="range"] {
+    accent-color: #10b981 !important;
+    cursor: pointer !important;
+    height: 6px !important;
+}
+.daw-stream-mix-slider input[type="range"]::-webkit-slider-thumb {
+    appearance: none !important;
+    width: 12px !important;
+    height: 16px !important;
+    border-radius: 2px !important;
+    background: #10b981 !important;
+    border: 1px solid #a7f3d0 !important;
+    cursor: ew-resize !important;
+}
+.daw-stream-mix-slider input[type="range"]::-moz-range-thumb {
+    appearance: none !important;
+    width: 12px !important;
+    height: 16px !important;
+    border-radius: 2px !important;
+    background: #10b981 !important;
+    border: 1px solid #a7f3d0 !important;
+    cursor: ew-resize !important;
+}
+.daw-stream-mix-slider input[type="number"] {
+    font-family: 'JetBrains Mono', Consolas, monospace !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    color: #34d399 !important;
+    background: #141518 !important;
+    border: 1px solid #27272a !important;
+    border-radius: 3px !important;
+    padding: 2px 6px !important;
+}
+
+/* Compact Live Mic Input & Device Selector Wrapping Fix */
+.daw-audio-panel.daw-audio-stream-panel {
+    min-height: 132px !important;
+}
+.daw-audio-panel.daw-audio-stream-panel > .block,
+.daw-audio-panel.daw-audio-stream-panel.block {
+    min-height: 132px !important;
+}
+.daw-audio-panel.daw-audio-stream-panel .audio-container,
+.daw-audio-panel.daw-audio-stream-panel .empty,
+.daw-audio-panel.daw-audio-stream-panel .empty-wrap,
+.daw-audio-panel.daw-audio-stream-panel .empty.small {
+    min-height: 82px !important;
+}
+.daw-audio-panel.daw-audio-stream-panel .microphone,
+.daw-audio-panel.daw-audio-stream-panel .controls {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 10px 12px !important;
+}
+.daw-audio-panel.daw-audio-stream-panel select {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    background: #141518 !important;
+    color: #e4e4e7 !important;
+    border: 1px solid #27272a !important;
+    border-radius: 4px !important;
+    padding: 6px 8px !important;
+    font-size: 11.5px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+.daw-audio-panel.daw-audio-stream-panel.daw-output-deck {
+    min-height: 104px !important;
+}
+.daw-audio-panel.daw-audio-stream-panel.daw-output-deck > .block,
+.daw-audio-panel.daw-audio-stream-panel.daw-output-deck.block {
+    min-height: 104px !important;
+}
+.daw-audio-panel.daw-audio-stream-panel.daw-output-deck .empty,
+.daw-audio-panel.daw-audio-stream-panel.daw-output-deck .empty-wrap,
+.daw-audio-panel.daw-audio-stream-panel.daw-output-deck .empty.small,
+.daw-audio-panel.daw-audio-stream-panel.daw-output-deck .audio-container {
+    min-height: 66px !important;
+}
+.telemetry-sub {
+    display: block;
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: #a1a1aa;
+    margin-top: 3px;
+    letter-spacing: 0.03em;
+}
+
+/* Real-Time VU & Attenuation Meter Bridge */
+.daw-vu-bridge-card {
+    background: #090a0c;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    font-family: 'JetBrains Mono', Consolas, monospace;
+}
+.daw-vu-bridge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #1f2126;
+}
+.daw-vu-bridge-badges {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.daw-vu-chip {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid #27272a;
+    background: #141518;
+    color: #a1a1aa;
+}
+.daw-vu-chip.is-wet {
+    background: #064e3b;
+    border-color: #059669;
+    color: #6ee7b7;
+}
+.daw-vu-chip.is-dry {
+    background: #451a03;
+    border-color: #b45309;
+    color: #fcd34d;
+}
+.daw-vu-clip-led {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid #27272a;
+    background: #141518;
+    color: #71717a;
+}
+.daw-vu-clip-led.is-lit {
+    background: #450a0a;
+    border-color: #ef4444;
+    color: #fca5a5;
+}
+.daw-vu-scale-row {
+    display: grid;
+    grid-template-columns: 118px minmax(0, 1fr) 128px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.daw-vu-scale-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9.5px;
+    color: #71717a;
+    font-variant-numeric: tabular-nums;
+}
+.daw-vu-meter-row {
+    display: grid;
+    grid-template-columns: 118px minmax(0, 1fr) 128px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 7px;
+}
+.daw-vu-meter-row:last-of-type {
+    margin-bottom: 0;
+}
+@media (max-width: 680px) {
+    .daw-vu-scale-row {
+        display: none;
+    }
+    .daw-vu-meter-row {
+        grid-template-columns: 1fr auto;
+    }
+    .daw-vu-meter-track {
+        grid-column: 1 / -1;
+        order: 3;
+    }
+}
+.daw-vu-meter-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #d4d4d8;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.daw-vu-meter-label span {
+    color: #71717a;
+    font-weight: 500;
+}
+.daw-vu-meter-track {
+    position: relative;
+    height: 12px;
+    background: #141518;
+    border: 1px solid #27272a;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.daw-vu-meter-track::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 6px,
+        #090a0c 6px,
+        #090a0c 8px
+    );
+    pointer-events: none;
+}
+.daw-vu-meter-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 120ms linear;
+}
+.daw-vu-meter-fill.vu-in {
+    background: linear-gradient(90deg, #0891b2 0%, #22d3ee 72%, #f59e0b 90%, #ef4444 100%);
+}
+.daw-vu-meter-fill.vu-out {
+    background: linear-gradient(90deg, #059669 0%, #10b981 75%, #34d399 100%);
+}
+.daw-vu-meter-fill.vu-att {
+    background: linear-gradient(90deg, #0e7490 0%, #06b6d4 65%, #34d399 100%);
+}
+.daw-vu-meter-fill.vu-muted {
+    background: #3f3f46;
+}
+.daw-vu-meter-readout {
+    font-size: 11px;
+    font-weight: 700;
+    color: #f4f4f5;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.daw-vu-meter-readout small {
+    color: #71717a;
+    font-size: 9.5px;
+    font-weight: 500;
+    margin-left: 4px;
+}
+
+/* Live Output Header & Acoustic Feedback Hint */
+.daw-live-monitor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 2px 0 6px 0;
+}
+.daw-monitor-hint {
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 10.5px;
+    color: #a1a1aa;
+    background: #141518;
+    border: 1px solid #27272a;
+    border-radius: 4px;
+    padding: 3px 8px;
+}
+
 /* Live Stream Signal Chain Diagram */
 .daw-signal-chain-card {
     background: #090a0c;
     border: 1px solid #27272a;
     border-radius: 6px;
-    padding: 14px 16px;
-    margin-top: 10px;
+    padding: 12px 14px;
+    margin-top: 12px;
 }
 .daw-signal-chain-flow {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 10px;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 @media (max-width: 768px) {
     .daw-signal-chain-flow {
@@ -812,9 +1287,24 @@ button.daw-sample-chip-btn:hover {
 .daw-signal-node {
     background: #141518;
     border: 1px solid #27272a;
+    border-top: 2px solid #27272a;
     border-radius: 4px;
-    padding: 10px 12px;
+    padding: 10px 11px;
     font-family: 'JetBrains Mono', Consolas, monospace;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: border-color 150ms ease;
+}
+.daw-signal-node.is-active {
+    border-top-color: #10b981;
+    border-color: #1f3d33;
+    border-top-width: 2px;
+}
+.daw-signal-node.is-bypass {
+    border-top-color: #f59e0b;
+    border-color: #452e12;
+    border-top-width: 2px;
 }
 .daw-signal-node-step {
     font-size: 10px;
@@ -823,6 +1313,9 @@ button.daw-sample-chip-btn:hover {
     letter-spacing: 0.06em;
     text-transform: uppercase;
 }
+.daw-signal-node.is-bypass .daw-signal-node-step {
+    color: #fbbf24;
+}
 .daw-signal-node-title {
     font-size: 12px;
     color: #f4f4f5;
@@ -830,10 +1323,22 @@ button.daw-sample-chip-btn:hover {
     margin-top: 3px;
 }
 .daw-signal-node-desc {
-    font-size: 11px;
+    font-size: 10.5px;
     color: #a1a1aa;
     margin-top: 3px;
     line-height: 1.4;
+}
+.daw-signal-node-meta {
+    margin-top: 7px;
+    padding-top: 6px;
+    border-top: 1px solid #1f2126;
+    font-size: 10px;
+    font-weight: 600;
+    color: #22d3ee;
+    font-variant-numeric: tabular-nums;
+}
+.daw-signal-node.is-bypass .daw-signal-node-meta {
+    color: #fcd34d;
 }
 
 /* Component Overrides & Audio Panel Symmetry */
